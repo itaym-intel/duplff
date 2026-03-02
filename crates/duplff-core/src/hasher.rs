@@ -16,13 +16,13 @@ const HASH_BUFFER_SIZE: usize = 128 * 1024;
 /// For files smaller than 4KB, hashes the entire content.
 /// This is used as a cheap pre-filter before full hashing.
 pub fn partial_hash(path: &Path) -> Result<[u8; 32]> {
-    let mut file = File::open(path)
+    let file = File::open(path)
         .map_err(|e| DuplffError::HashError(format!("{}: {}", path.display(), e)))?;
-    let mut buf = vec![0u8; PARTIAL_HASH_SIZE];
-    let n = file
-        .read(&mut buf)
+    let mut buf = Vec::with_capacity(PARTIAL_HASH_SIZE);
+    file.take(PARTIAL_HASH_SIZE as u64)
+        .read_to_end(&mut buf)
         .map_err(|e| DuplffError::HashError(format!("{}: {}", path.display(), e)))?;
-    Ok(*blake3::hash(&buf[..n]).as_bytes())
+    Ok(*blake3::hash(&buf).as_bytes())
 }
 
 /// Compute a full BLAKE3 hash of a file's entire content.

@@ -1,28 +1,30 @@
 use crate::error::{DuplffError, Result};
 use crate::models::DuplicateGroup;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Plan produced by a dry run -- describes what would be deleted.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActionPlan {
     pub files_to_delete: Vec<PathBuf>,
     pub bytes_to_reclaim: u64,
 }
 
 /// Record of a single action taken.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActionRecord {
     pub path: PathBuf,
     pub action: ActionType,
 }
 
-#[derive(Debug, Clone)]
+/// The type of action performed on a file.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ActionType {
     Trashed,
 }
 
 /// Log of all actions taken during a trash operation.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActionLog {
     pub actions: Vec<ActionRecord>,
     pub bytes_reclaimed: u64,
@@ -70,6 +72,16 @@ pub fn trash_duplicates(groups: &[DuplicateGroup]) -> Result<ActionLog> {
     })
 }
 
+/// Undo a previous trash operation by restoring files from the OS trash.
+///
+/// TODO: Implement using `trash::os_limited::list()` to find and restore trashed files.
+/// This is deferred to post-MVP. The `ActionLog` structure is already in place to support this.
+pub fn undo(_log: &ActionLog) -> Result<()> {
+    Err(DuplffError::TrashError(
+        "undo is not yet implemented".into(),
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -78,13 +90,21 @@ mod tests {
 
     fn make_group(paths: &[&str]) -> DuplicateGroup {
         let keep = RankedFile {
-            entry: FileEntry { path: paths[0].into(), size: 100, modified: SystemTime::UNIX_EPOCH },
+            entry: FileEntry {
+                path: paths[0].into(),
+                size: 100,
+                modified: SystemTime::UNIX_EPOCH,
+            },
             reason: KeepReason::LexicographicFirst,
         };
         let duplicates: Vec<RankedFile> = paths[1..]
             .iter()
             .map(|p| RankedFile {
-                entry: FileEntry { path: (*p).into(), size: 100, modified: SystemTime::UNIX_EPOCH },
+                entry: FileEntry {
+                    path: (*p).into(),
+                    size: 100,
+                    modified: SystemTime::UNIX_EPOCH,
+                },
                 reason: KeepReason::LexicographicFirst,
             })
             .collect();
@@ -102,14 +122,18 @@ mod tests {
         let plan = dry_run(&groups);
         assert_eq!(plan.files_to_delete.len(), 2);
         assert_eq!(plan.bytes_to_reclaim, 200);
-        assert!(plan.files_to_delete.contains(&std::path::PathBuf::from("/delete1.txt")));
+        assert!(plan
+            .files_to_delete
+            .contains(&std::path::PathBuf::from("/delete1.txt")));
     }
 
     #[test]
     fn dry_run_never_includes_keep_file() {
         let groups = vec![make_group(&["/keep.txt", "/dup.txt"])];
         let plan = dry_run(&groups);
-        assert!(!plan.files_to_delete.contains(&std::path::PathBuf::from("/keep.txt")));
+        assert!(!plan
+            .files_to_delete
+            .contains(&std::path::PathBuf::from("/keep.txt")));
     }
 
     #[test]
@@ -127,11 +151,19 @@ mod tests {
             hash: [0u8; 32],
             size: 7,
             keep: RankedFile {
-                entry: FileEntry { path: keep.clone(), size: 7, modified: SystemTime::UNIX_EPOCH },
+                entry: FileEntry {
+                    path: keep.clone(),
+                    size: 7,
+                    modified: SystemTime::UNIX_EPOCH,
+                },
                 reason: KeepReason::LexicographicFirst,
             },
             duplicates: vec![RankedFile {
-                entry: FileEntry { path: dup.clone(), size: 7, modified: SystemTime::UNIX_EPOCH },
+                entry: FileEntry {
+                    path: dup.clone(),
+                    size: 7,
+                    modified: SystemTime::UNIX_EPOCH,
+                },
                 reason: KeepReason::LexicographicFirst,
             }],
         }];

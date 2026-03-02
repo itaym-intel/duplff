@@ -39,21 +39,26 @@ pub fn find_duplicate_groups(
         .map(|entry| {
             let hash = hasher::partial_hash(&entry.path)?;
             let count = hashed_count.fetch_add(1, Ordering::Relaxed) + 1;
-            if count % 100 == 0 {
+            if count.is_multiple_of(100) {
                 progress.on_hash_progress(count, total);
             }
             Ok((entry, hash))
         })
         .collect();
 
-    // Collect results, skip errors (file may have been deleted mid-scan)
+    // Collect results, warn on errors (file may have been deleted mid-scan)
     let mut partial_map: HashMap<(u64, [u8; 32]), Vec<FileEntry>> = HashMap::new();
     for result in partial_results {
-        if let Ok((entry, hash)) = result {
-            partial_map
-                .entry((entry.size, hash))
-                .or_default()
-                .push(entry);
+        match result {
+            Ok((entry, hash)) => {
+                partial_map
+                    .entry((entry.size, hash))
+                    .or_default()
+                    .push(entry);
+            }
+            Err(e) => {
+                eprintln!("warning: skipping file during partial hash: {e}");
+            }
         }
     }
 
@@ -71,21 +76,26 @@ pub fn find_duplicate_groups(
         .map(|entry| {
             let hash = hasher::full_hash(&entry.path)?;
             let count = hashed_count.fetch_add(1, Ordering::Relaxed) + 1;
-            if count % 100 == 0 {
+            if count.is_multiple_of(100) {
                 progress.on_hash_progress(count, total);
             }
             Ok(HashedFile { entry, hash })
         })
         .collect();
 
-    // Group by full hash
+    // Group by full hash, warn on errors
     let mut full_map: HashMap<(u64, [u8; 32]), Vec<HashedFile>> = HashMap::new();
     for result in full_results {
-        if let Ok(hf) = result {
-            full_map
-                .entry((hf.entry.size, hf.hash))
-                .or_default()
-                .push(hf);
+        match result {
+            Ok(hf) => {
+                full_map
+                    .entry((hf.entry.size, hf.hash))
+                    .or_default()
+                    .push(hf);
+            }
+            Err(e) => {
+                eprintln!("warning: skipping file during full hash: {e}");
+            }
         }
     }
 
@@ -107,9 +117,21 @@ mod tests {
     #[test]
     fn group_by_size_filters_unique_sizes() {
         let files = vec![
-            FileEntry { path: "/a".into(), size: 100, modified: SystemTime::UNIX_EPOCH },
-            FileEntry { path: "/b".into(), size: 100, modified: SystemTime::UNIX_EPOCH },
-            FileEntry { path: "/c".into(), size: 200, modified: SystemTime::UNIX_EPOCH }, // unique
+            FileEntry {
+                path: "/a".into(),
+                size: 100,
+                modified: SystemTime::UNIX_EPOCH,
+            },
+            FileEntry {
+                path: "/b".into(),
+                size: 100,
+                modified: SystemTime::UNIX_EPOCH,
+            },
+            FileEntry {
+                path: "/c".into(),
+                size: 200,
+                modified: SystemTime::UNIX_EPOCH,
+            }, // unique
         ];
         let groups = group_by_size(files);
         assert_eq!(groups.len(), 1); // only the size=100 group
@@ -125,8 +147,16 @@ mod tests {
     #[test]
     fn group_by_size_all_unique() {
         let files = vec![
-            FileEntry { path: "/a".into(), size: 100, modified: SystemTime::UNIX_EPOCH },
-            FileEntry { path: "/b".into(), size: 200, modified: SystemTime::UNIX_EPOCH },
+            FileEntry {
+                path: "/a".into(),
+                size: 100,
+                modified: SystemTime::UNIX_EPOCH,
+            },
+            FileEntry {
+                path: "/b".into(),
+                size: 200,
+                modified: SystemTime::UNIX_EPOCH,
+            },
         ];
         let groups = group_by_size(files);
         assert!(groups.is_empty());
