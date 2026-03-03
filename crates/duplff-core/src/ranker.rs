@@ -17,10 +17,8 @@ pub fn rank_group(files: Vec<HashedFile>, priority_paths: &[impl AsRef<Path>]) -
     let size = files[0].entry.size;
 
     // Score each file
-    let mut scored: Vec<(
-        HashedFile,
-        (bool, usize, u64, std::cmp::Reverse<std::path::PathBuf>),
-    )> = files
+    type FileScore = (bool, usize, u64, std::cmp::Reverse<std::path::PathBuf>);
+    let mut scored: Vec<(HashedFile, FileScore)> = files
         .into_iter()
         .map(|hf| {
             let in_priority = priority_paths
@@ -132,10 +130,7 @@ mod tests {
             make_hashed("/a/b/c/file.txt", UNIX_EPOCH),
         ];
         let ranked = rank_group(group, &Vec::<std::path::PathBuf>::new());
-        assert_eq!(
-            ranked.keep.entry.path.to_str().unwrap(),
-            "/a/b/c/file.txt"
-        );
+        assert_eq!(ranked.keep.entry.path.to_str().unwrap(), "/a/b/c/file.txt");
         assert_eq!(ranked.keep.reason, KeepReason::DeepestPath);
     }
 
@@ -153,10 +148,7 @@ mod tests {
     #[test]
     fn lexicographic_tiebreaker() {
         let t = UNIX_EPOCH;
-        let group = vec![
-            make_hashed("/z/file.txt", t),
-            make_hashed("/a/file.txt", t),
-        ];
+        let group = vec![make_hashed("/z/file.txt", t), make_hashed("/a/file.txt", t)];
         let ranked = rank_group(group, &Vec::<std::path::PathBuf>::new());
         assert_eq!(ranked.keep.entry.path.to_str().unwrap(), "/a/file.txt");
         assert_eq!(ranked.keep.reason, KeepReason::LexicographicFirst);

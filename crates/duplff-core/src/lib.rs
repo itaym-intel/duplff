@@ -2,14 +2,14 @@
 //!
 //! Provides scanning, hashing, grouping, ranking, and safe removal of duplicate files.
 
+pub mod actions;
+pub mod deduper;
 pub mod error;
+pub mod hasher;
 pub mod models;
 pub mod progress;
-pub mod scanner;
-pub mod hasher;
-pub mod deduper;
 pub mod ranker;
-pub mod actions;
+pub mod scanner;
 
 use error::Result;
 use models::{DuplicateReport, ScanConfig};

@@ -8,6 +8,7 @@ pub fn human_bytes(bytes: u64) -> String {
 /// Truncate a path string to fit within max_width, keeping the end visible.
 ///
 /// If the path is longer than max_width, replaces the beginning with "...".
+#[allow(dead_code)]
 pub fn truncate_path(path: &str, max_width: usize) -> String {
     if path.len() <= max_width {
         return path.to_string();

@@ -9,7 +9,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 /// Scan directories according to config, returning matching file entries.
 pub fn scan(config: &ScanConfig, progress: &dyn ProgressHandler) -> Result<Vec<FileEntry>> {
     if config.roots.is_empty() {
-        return Err(DuplffError::ScanError("no root directories specified".into()));
+        return Err(DuplffError::ScanError(
+            "no root directories specified".into(),
+        ));
     }
 
     let mut builder = WalkBuilder::new(&config.roots[0]);
@@ -35,7 +37,9 @@ pub fn scan(config: &ScanConfig, progress: &dyn ProgressHandler) -> Result<Vec<F
             _ => continue,
         };
 
-        let metadata = entry.metadata().map_err(|e| DuplffError::ScanError(e.to_string()))?;
+        let metadata = entry
+            .metadata()
+            .map_err(|e| DuplffError::ScanError(e.to_string()))?;
         let size = metadata.len();
 
         // Apply size filter
@@ -65,7 +69,7 @@ pub fn scan(config: &ScanConfig, progress: &dyn ProgressHandler) -> Result<Vec<F
         });
 
         let count = counter.fetch_add(1, Ordering::Relaxed) + 1;
-        if count % 1000 == 0 {
+        if count.is_multiple_of(1000) {
             progress.on_scan_progress(count);
         }
     }
@@ -85,12 +89,12 @@ mod tests {
     fn make_test_tree() -> TempDir {
         let dir = TempDir::new().unwrap();
         // Create files of varying sizes
-        fs::write(dir.path().join("a.txt"), "hello").unwrap();         // 5 bytes
-        fs::write(dir.path().join("b.py"), "world!").unwrap();         // 6 bytes
+        fs::write(dir.path().join("a.txt"), "hello").unwrap(); // 5 bytes
+        fs::write(dir.path().join("b.py"), "world!").unwrap(); // 6 bytes
         fs::create_dir(dir.path().join("sub")).unwrap();
         fs::write(dir.path().join("sub/c.rs"), "fn main() {}").unwrap(); // 13 bytes
-        fs::write(dir.path().join("sub/d.txt"), "hi").unwrap();        // 2 bytes
-        // Empty file — should be skipped with min_size=1
+        fs::write(dir.path().join("sub/d.txt"), "hi").unwrap(); // 2 bytes
+                                                                // Empty file — should be skipped with min_size=1
         fs::write(dir.path().join("empty.txt"), "").unwrap();
         dir
     }
@@ -143,7 +147,10 @@ mod tests {
             ..ScanConfig::default()
         };
         let files = scan(&config, &NoopProgress).unwrap();
-        let a = files.iter().find(|f| f.path.file_name().unwrap() == "a.txt").unwrap();
+        let a = files
+            .iter()
+            .find(|f| f.path.file_name().unwrap() == "a.txt")
+            .unwrap();
         assert_eq!(a.size, 5);
     }
 }

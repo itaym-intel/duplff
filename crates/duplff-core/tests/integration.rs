@@ -1,6 +1,6 @@
 use duplff_core::models::ScanConfig;
 use duplff_core::progress::NoopProgress;
-use duplff_core::{find_duplicates, actions};
+use duplff_core::{actions, find_duplicates};
 use std::fs;
 use tempfile::TempDir;
 
@@ -72,7 +72,11 @@ fn full_pipeline_with_priority_paths() {
 
     let report = find_duplicates(&config, &NoopProgress).unwrap();
     assert_eq!(report.groups.len(), 1);
-    assert!(report.groups[0].keep.entry.path.starts_with(dir.path().join("src")));
+    assert!(report.groups[0]
+        .keep
+        .entry
+        .path
+        .starts_with(dir.path().join("src")));
 }
 
 #[test]
