@@ -15,8 +15,7 @@ fn main() {
     } else if args.dry_run {
         non_interactive::run_dry_run(&config)
     } else {
-        eprintln!("TUI mode not yet implemented");
-        std::process::exit(1);
+        tui::run(config)
     };
 
     if let Err(e) = result {
