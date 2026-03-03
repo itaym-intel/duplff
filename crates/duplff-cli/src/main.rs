@@ -1,6 +1,7 @@
 mod cli;
 mod format;
 mod non_interactive;
+mod tui;
 
 use clap::Parser;
 use cli::Cli;
