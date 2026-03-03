@@ -7,17 +7,6 @@ use ratatui::Frame;
 /// Render the help overlay centered in the given area.
 pub fn render_help(frame: &mut Frame, area: Rect) {
     let help_lines = vec![
-        Line::from(Span::styled(
-            "Workflow",
-            Style::default()
-                .add_modifier(Modifier::BOLD)
-                .fg(Color::Cyan),
-        )),
-        Line::from("  1. Select a group (Enter or Tab to detail)"),
-        Line::from("  2. Mark duplicates (Space or D to mark all)"),
-        Line::from("  3. Press d to trash marked files (y to confirm)"),
-        Line::from("  The [KEEP] file is protected and cannot be marked."),
-        Line::from(""),
         Line::from(vec![
             Span::styled("Key", Style::default().add_modifier(Modifier::BOLD)),
             Span::raw("          "),
@@ -59,7 +48,7 @@ pub fn render_help(frame: &mut Frame, area: Rect) {
         Line::from(""),
         Line::from(vec![
             Span::styled("q / Esc     ", Style::default().fg(Color::Yellow)),
-            Span::raw("Quit (nothing deleted until d+y)"),
+            Span::raw("Quit"),
         ]),
         Line::from(vec![
             Span::styled("?           ", Style::default().fg(Color::Yellow)),
