@@ -1,4 +1,5 @@
 mod cli;
+mod format;
 
 use clap::Parser;
 use cli::Cli;
