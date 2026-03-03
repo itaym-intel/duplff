@@ -1,3 +1,4 @@
+pub mod detail;
 pub mod groups;
 pub mod help;
 pub mod scan;
