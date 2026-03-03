@@ -261,23 +261,40 @@ fn render_results(
         marked,
     );
 
-    // Help bar
-    let help_bar = Line::from(vec![
-        Span::styled(" q", Style::default().fg(Color::Yellow)),
-        Span::raw(":quit  "),
-        Span::styled("j/k", Style::default().fg(Color::Yellow)),
-        Span::raw(":nav  "),
-        Span::styled("Tab", Style::default().fg(Color::Yellow)),
-        Span::raw(":switch  "),
-        Span::styled("Space", Style::default().fg(Color::Yellow)),
-        Span::raw(":toggle  "),
-        Span::styled("d", Style::default().fg(Color::Yellow)),
-        Span::raw(":delete  "),
-        Span::styled("D", Style::default().fg(Color::Yellow)),
-        Span::raw(":mark-all  "),
-        Span::styled("?", Style::default().fg(Color::Yellow)),
-        Span::raw(":help"),
-    ]);
+    // Help bar — show workflow-aware hints
+    let help_bar = if marked.is_empty() {
+        Line::from(vec![
+            Span::styled(" Tab", Style::default().fg(Color::Yellow)),
+            Span::raw(":switch  "),
+            Span::styled("Enter", Style::default().fg(Color::Yellow)),
+            Span::raw(":select  "),
+            Span::styled("Space", Style::default().fg(Color::Yellow)),
+            Span::raw(":mark  "),
+            Span::styled("D", Style::default().fg(Color::Yellow)),
+            Span::raw(":mark-all  "),
+            Span::styled("j/k", Style::default().fg(Color::Yellow)),
+            Span::raw(":nav  "),
+            Span::styled("?", Style::default().fg(Color::Yellow)),
+            Span::raw(":help  "),
+            Span::styled("q", Style::default().fg(Color::Yellow)),
+            Span::raw(":quit"),
+        ])
+    } else {
+        Line::from(vec![
+            Span::styled(" d", Style::default().fg(Color::Red)),
+            Span::raw(":trash marked  "),
+            Span::styled("u", Style::default().fg(Color::Yellow)),
+            Span::raw(":unmark  "),
+            Span::styled("Space", Style::default().fg(Color::Yellow)),
+            Span::raw(":toggle  "),
+            Span::styled("j/k", Style::default().fg(Color::Yellow)),
+            Span::raw(":nav  "),
+            Span::styled("?", Style::default().fg(Color::Yellow)),
+            Span::raw(":help  "),
+            Span::styled("q", Style::default().fg(Color::Yellow)),
+            Span::raw(":quit"),
+        ])
+    };
     frame.render_widget(
         Paragraph::new(help_bar).style(Style::default().fg(Color::DarkGray)),
         chunks[3],
