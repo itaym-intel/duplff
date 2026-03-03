@@ -1,17 +1,25 @@
 mod cli;
 mod format;
+mod non_interactive;
 
 use clap::Parser;
 use cli::Cli;
 
 fn main() {
     let args = Cli::parse();
+    let config = args.to_scan_config();
 
-    if args.json || args.dry_run {
-        eprintln!("Non-interactive mode not yet implemented");
-        std::process::exit(1);
+    let result = if args.json {
+        non_interactive::run_json(&config)
+    } else if args.dry_run {
+        non_interactive::run_dry_run(&config)
     } else {
         eprintln!("TUI mode not yet implemented");
+        std::process::exit(1);
+    };
+
+    if let Err(e) = result {
+        eprintln!("Error: {e}");
         std::process::exit(1);
     }
 }
