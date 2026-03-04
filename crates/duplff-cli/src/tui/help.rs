@@ -45,6 +45,10 @@ pub fn render_help(frame: &mut Frame, area: Rect) {
             Span::styled("d           ", Style::default().fg(Color::Yellow)),
             Span::raw("Trash marked files (confirms first)"),
         ]),
+        Line::from(vec![
+            Span::styled("/           ", Style::default().fg(Color::Yellow)),
+            Span::raw("Filter groups by path"),
+        ]),
         Line::from(""),
         Line::from(vec![
             Span::styled("q / Esc     ", Style::default().fg(Color::Yellow)),

@@ -118,6 +118,7 @@ fn render(frame: &mut Frame, state: &AppState) {
             detail_cursor,
             focus,
             marked,
+            filter,
         } => {
             render_results(
                 frame,
@@ -127,6 +128,7 @@ fn render(frame: &mut Frame, state: &AppState) {
                 *detail_cursor,
                 *focus,
                 marked,
+                filter,
             );
         }
         AppState::Confirm {
@@ -135,6 +137,7 @@ fn render(frame: &mut Frame, state: &AppState) {
             detail_cursor,
             focus,
             marked,
+            filter,
             message,
         } => {
             render_results(
@@ -145,6 +148,7 @@ fn render(frame: &mut Frame, state: &AppState) {
                 *detail_cursor,
                 *focus,
                 marked,
+                filter,
             );
             render_confirm(frame, area, message);
         }
@@ -154,6 +158,7 @@ fn render(frame: &mut Frame, state: &AppState) {
             detail_cursor,
             focus,
             marked,
+            filter,
         } => {
             render_results(
                 frame,
@@ -163,6 +168,7 @@ fn render(frame: &mut Frame, state: &AppState) {
                 *detail_cursor,
                 *focus,
                 marked,
+                filter,
             );
             help::render_help(frame, area);
         }
@@ -193,6 +199,7 @@ fn render_scanning(
     frame.render_widget(paragraph, centered);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_results(
     frame: &mut Frame,
     area: Rect,
@@ -201,6 +208,7 @@ fn render_results(
     detail_cursor: usize,
     focus: FocusPane,
     marked: &std::collections::HashSet<std::path::PathBuf>,
+    filter: &Option<String>,
 ) {
     // Layout: summary bar (1 line) + groups pane (40%) + detail pane (rest) + help bar (1 line)
     let chunks = Layout::default()
@@ -212,6 +220,34 @@ fn render_results(
             Constraint::Length(1),
         ])
         .split(area);
+
+    // Apply filter to groups
+    let filtered_groups: Vec<&duplff_core::models::DuplicateGroup> = if let Some(ref f) = filter {
+        if f.is_empty() {
+            report.groups.iter().collect()
+        } else {
+            let f_lower = f.to_lowercase();
+            report
+                .groups
+                .iter()
+                .filter(|g| {
+                    g.keep
+                        .entry
+                        .path
+                        .to_str()
+                        .is_some_and(|p| p.to_lowercase().contains(&f_lower))
+                        || g.duplicates.iter().any(|d| {
+                            d.entry
+                                .path
+                                .to_str()
+                                .is_some_and(|p| p.to_lowercase().contains(&f_lower))
+                        })
+                })
+                .collect()
+        }
+    } else {
+        report.groups.iter().collect()
+    };
 
     // Summary bar
     let summary = Line::from(vec![
@@ -245,13 +281,13 @@ fn render_results(
     groups::render_groups(
         frame,
         chunks[1],
-        &report.groups,
+        &filtered_groups,
         group_cursor,
         focus == FocusPane::Groups,
     );
 
     // Detail pane
-    let current_group = report.groups.get(group_cursor);
+    let current_group = filtered_groups.get(group_cursor).copied();
     detail::render_detail(
         frame,
         chunks[2],
@@ -262,8 +298,16 @@ fn render_results(
     );
 
     // Help bar — show workflow-aware hints
-    let help_bar = if marked.is_empty() {
-        Line::from(vec![
+    if filter.is_some() {
+        let filter_text = filter.as_deref().unwrap_or("");
+        let filter_bar = Line::from(vec![
+            Span::styled(" /", Style::default().fg(Color::Yellow)),
+            Span::raw(filter_text),
+            Span::styled("_", Style::default().fg(Color::Yellow)),
+        ]);
+        frame.render_widget(Paragraph::new(filter_bar), chunks[3]);
+    } else if marked.is_empty() {
+        let help_bar = Line::from(vec![
             Span::styled(" Tab", Style::default().fg(Color::Yellow)),
             Span::raw(":switch  "),
             Span::styled("Enter", Style::default().fg(Color::Yellow)),
@@ -278,9 +322,13 @@ fn render_results(
             Span::raw(":help  "),
             Span::styled("q", Style::default().fg(Color::Yellow)),
             Span::raw(":quit"),
-        ])
+        ]);
+        frame.render_widget(
+            Paragraph::new(help_bar).style(Style::default().fg(Color::DarkGray)),
+            chunks[3],
+        );
     } else {
-        Line::from(vec![
+        let help_bar = Line::from(vec![
             Span::styled(" d", Style::default().fg(Color::Red)),
             Span::raw(":trash marked  "),
             Span::styled("u", Style::default().fg(Color::Yellow)),
@@ -293,12 +341,12 @@ fn render_results(
             Span::raw(":help  "),
             Span::styled("q", Style::default().fg(Color::Yellow)),
             Span::raw(":quit"),
-        ])
-    };
-    frame.render_widget(
-        Paragraph::new(help_bar).style(Style::default().fg(Color::DarkGray)),
-        chunks[3],
-    );
+        ]);
+        frame.render_widget(
+            Paragraph::new(help_bar).style(Style::default().fg(Color::DarkGray)),
+            chunks[3],
+        );
+    }
 }
 
 fn render_confirm(frame: &mut Frame, area: Rect, message: &str) {
@@ -346,6 +394,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
             detail_cursor,
             focus,
             marked,
+            filter,
         } => {
             // Any key dismisses help
             let r = std::mem::replace(
@@ -362,12 +411,14 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
             let dc = *detail_cursor;
             let f = *focus;
             let m = std::mem::take(marked);
+            let flt = std::mem::take(filter);
             *state = AppState::Results {
                 report: r,
                 group_cursor: gc,
                 detail_cursor: dc,
                 focus: f,
                 marked: m,
+                filter: flt,
             };
         }
         AppState::Confirm {
@@ -376,6 +427,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
             detail_cursor,
             focus,
             marked,
+            filter,
             ..
         } => match key.code {
             KeyCode::Char('y') | KeyCode::Char('Y') => {
@@ -425,6 +477,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                     detail_cursor: 0,
                     focus: FocusPane::Groups,
                     marked: std::collections::HashSet::new(),
+                    filter: None,
                 };
             }
             _ => {
@@ -443,12 +496,14 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                 let dc = *detail_cursor;
                 let f = *focus;
                 let m = std::mem::take(marked);
+                let flt = std::mem::take(filter);
                 *state = AppState::Results {
                     report: r,
                     group_cursor: gc,
                     detail_cursor: dc,
                     focus: f,
                     marked: m,
+                    filter: flt,
                 };
             }
         },
@@ -458,118 +513,43 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
             detail_cursor,
             focus,
             marked,
-        } => match key.code {
-            KeyCode::Char('q') | KeyCode::Esc => return true,
-            KeyCode::Char('?') => {
-                let r = std::mem::replace(
-                    report,
-                    duplff_core::models::DuplicateReport {
-                        groups: vec![],
-                        total_files_scanned: 0,
-                        total_bytes_scanned: 0,
-                        total_duplicates: 0,
-                        total_wasted_bytes: 0,
-                    },
-                );
-                let gc = *group_cursor;
-                let dc = *detail_cursor;
-                let f = *focus;
-                let m = std::mem::take(marked);
-                *state = AppState::Help {
-                    report: r,
-                    group_cursor: gc,
-                    detail_cursor: dc,
-                    focus: f,
-                    marked: m,
-                };
-            }
-            KeyCode::Tab => {
-                *focus = match focus {
-                    FocusPane::Groups => FocusPane::Detail,
-                    FocusPane::Detail => FocusPane::Groups,
-                };
-            }
-            KeyCode::Enter => {
-                if *focus == FocusPane::Groups {
-                    *focus = FocusPane::Detail;
-                    *detail_cursor = 0;
-                }
-            }
-            KeyCode::Char('j') | KeyCode::Down => match focus {
-                FocusPane::Groups => {
-                    if !report.groups.is_empty() {
-                        *group_cursor = (*group_cursor + 1).min(report.groups.len() - 1);
-                        *detail_cursor = 0;
+            filter,
+        } => {
+            // Filter input mode — capture keystrokes
+            if let Some(ref mut f) = filter {
+                match key.code {
+                    KeyCode::Esc => {
+                        *filter = None;
                     }
-                }
-                FocusPane::Detail => {
-                    if let Some(group) = report.groups.get(*group_cursor) {
-                        let max = group.duplicates.len(); // 0 = keep, 1..=n = dups
-                        *detail_cursor = (*detail_cursor + 1).min(max);
+                    KeyCode::Enter => {
+                        // Exit filter input mode but keep the filter text
+                        // If empty, clear filter entirely
+                        if f.is_empty() {
+                            *filter = None;
+                        }
+                        // Otherwise just stop capturing keys — filter stays active
                     }
-                }
-            },
-            KeyCode::Char('k') | KeyCode::Up => match focus {
-                FocusPane::Groups => {
-                    *group_cursor = group_cursor.saturating_sub(1);
-                    *detail_cursor = 0;
-                }
-                FocusPane::Detail => {
-                    *detail_cursor = detail_cursor.saturating_sub(1);
-                }
-            },
-            KeyCode::Char(' ') => {
-                if *focus == FocusPane::Detail {
-                    if let Some(group) = report.groups.get(*group_cursor) {
-                        // detail_cursor 0 = keep file (can't mark), 1+ = duplicates
-                        if *detail_cursor > 0 {
-                            let dup_idx = *detail_cursor - 1;
-                            if let Some(dup) = group.duplicates.get(dup_idx) {
-                                let path = dup.entry.path.clone();
-                                if marked.contains(&path) {
-                                    marked.remove(&path);
-                                } else {
-                                    marked.insert(path);
-                                }
-                            }
+                    KeyCode::Backspace => {
+                        f.pop();
+                        if f.is_empty() {
+                            *filter = None;
                         }
                     }
-                }
-            }
-            KeyCode::Char('D') => {
-                if *focus == FocusPane::Detail {
-                    if let Some(group) = report.groups.get(*group_cursor) {
-                        for dup in &group.duplicates {
-                            marked.insert(dup.entry.path.clone());
-                        }
+                    KeyCode::Char(c) => {
+                        f.push(c);
+                        *group_cursor = 0;
                     }
+                    _ => {}
                 }
+                return false;
             }
-            KeyCode::Char('u') => {
-                if *focus == FocusPane::Detail {
-                    if let Some(group) = report.groups.get(*group_cursor) {
-                        for dup in &group.duplicates {
-                            marked.remove(&dup.entry.path);
-                        }
-                    }
+
+            match key.code {
+                KeyCode::Char('q') | KeyCode::Esc => return true,
+                KeyCode::Char('/') => {
+                    *filter = Some(String::new());
                 }
-            }
-            KeyCode::Char('d') => {
-                if !marked.is_empty() {
-                    let count = marked.len();
-                    let bytes: u64 = report
-                        .groups
-                        .iter()
-                        .flat_map(|g| g.duplicates.iter())
-                        .filter(|d| marked.contains(&d.entry.path))
-                        .map(|d| d.entry.size)
-                        .sum();
-                    let message = format!(
-                        "Delete {} file{} ({}) to trash?",
-                        count,
-                        if count == 1 { "" } else { "s" },
-                        human_bytes(bytes),
-                    );
+                KeyCode::Char('?') => {
                     let r = std::mem::replace(
                         report,
                         duplff_core::models::DuplicateReport {
@@ -584,18 +564,132 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                     let dc = *detail_cursor;
                     let f = *focus;
                     let m = std::mem::take(marked);
-                    *state = AppState::Confirm {
+                    let flt = std::mem::take(filter);
+                    *state = AppState::Help {
                         report: r,
                         group_cursor: gc,
                         detail_cursor: dc,
                         focus: f,
                         marked: m,
-                        message,
+                        filter: flt,
                     };
                 }
+                KeyCode::Tab => {
+                    *focus = match focus {
+                        FocusPane::Groups => FocusPane::Detail,
+                        FocusPane::Detail => FocusPane::Groups,
+                    };
+                }
+                KeyCode::Enter => {
+                    if *focus == FocusPane::Groups {
+                        *focus = FocusPane::Detail;
+                        *detail_cursor = 0;
+                    }
+                }
+                KeyCode::Char('j') | KeyCode::Down => match focus {
+                    FocusPane::Groups => {
+                        if !report.groups.is_empty() {
+                            *group_cursor = (*group_cursor + 1).min(report.groups.len() - 1);
+                            *detail_cursor = 0;
+                        }
+                    }
+                    FocusPane::Detail => {
+                        if let Some(group) = report.groups.get(*group_cursor) {
+                            let max = group.duplicates.len(); // 0 = keep, 1..=n = dups
+                            *detail_cursor = (*detail_cursor + 1).min(max);
+                        }
+                    }
+                },
+                KeyCode::Char('k') | KeyCode::Up => match focus {
+                    FocusPane::Groups => {
+                        *group_cursor = group_cursor.saturating_sub(1);
+                        *detail_cursor = 0;
+                    }
+                    FocusPane::Detail => {
+                        *detail_cursor = detail_cursor.saturating_sub(1);
+                    }
+                },
+                KeyCode::Char(' ') => {
+                    if *focus == FocusPane::Detail {
+                        if let Some(group) = report.groups.get(*group_cursor) {
+                            // detail_cursor 0 = keep file (can't mark), 1+ = duplicates
+                            if *detail_cursor > 0 {
+                                let dup_idx = *detail_cursor - 1;
+                                if let Some(dup) = group.duplicates.get(dup_idx) {
+                                    let path = dup.entry.path.clone();
+                                    if marked.contains(&path) {
+                                        marked.remove(&path);
+                                    } else {
+                                        marked.insert(path);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                KeyCode::Char('D') => {
+                    if *focus == FocusPane::Detail {
+                        if let Some(group) = report.groups.get(*group_cursor) {
+                            for dup in &group.duplicates {
+                                marked.insert(dup.entry.path.clone());
+                            }
+                        }
+                    }
+                }
+                KeyCode::Char('u') => {
+                    if *focus == FocusPane::Detail {
+                        if let Some(group) = report.groups.get(*group_cursor) {
+                            for dup in &group.duplicates {
+                                marked.remove(&dup.entry.path);
+                            }
+                        }
+                    }
+                }
+                KeyCode::Char('d') => {
+                    if !marked.is_empty() {
+                        let count = marked.len();
+                        let bytes: u64 = report
+                            .groups
+                            .iter()
+                            .flat_map(|g| g.duplicates.iter())
+                            .filter(|d| marked.contains(&d.entry.path))
+                            .map(|d| d.entry.size)
+                            .sum();
+                        let message = format!(
+                            "Delete {} file{} ({}) to trash?",
+                            count,
+                            if count == 1 { "" } else { "s" },
+                            human_bytes(bytes),
+                        );
+                        let r = std::mem::replace(
+                            report,
+                            duplff_core::models::DuplicateReport {
+                                groups: vec![],
+                                total_files_scanned: 0,
+                                total_bytes_scanned: 0,
+                                total_duplicates: 0,
+                                total_wasted_bytes: 0,
+                            },
+                        );
+                        let gc = *group_cursor;
+                        let dc = *detail_cursor;
+                        let f = *focus;
+                        let m = std::mem::take(marked);
+                        let flt = std::mem::take(filter);
+                        *state = AppState::Confirm {
+                            report: r,
+                            group_cursor: gc,
+                            detail_cursor: dc,
+                            focus: f,
+                            marked: m,
+                            filter: flt,
+                            message,
+                        };
+                    }
+                }
+                _ => {}
             }
-            _ => {}
-        },
+        }
     }
     false
 }

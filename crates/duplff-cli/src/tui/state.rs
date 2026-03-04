@@ -25,6 +25,7 @@ pub enum AppState {
         detail_cursor: usize,
         focus: FocusPane,
         marked: HashSet<PathBuf>,
+        filter: Option<String>,
     },
     /// Confirmation dialog before deletion.
     Confirm {
@@ -33,6 +34,7 @@ pub enum AppState {
         detail_cursor: usize,
         focus: FocusPane,
         marked: HashSet<PathBuf>,
+        filter: Option<String>,
         message: String,
     },
     /// Help overlay.
@@ -42,6 +44,7 @@ pub enum AppState {
         detail_cursor: usize,
         focus: FocusPane,
         marked: HashSet<PathBuf>,
+        filter: Option<String>,
     },
     /// Fatal error.
     Error(String),
@@ -72,6 +75,7 @@ impl AppState {
             detail_cursor: 0,
             focus: FocusPane::Groups,
             marked: HashSet::new(),
+            filter: None,
         }
     }
 }

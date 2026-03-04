@@ -9,7 +9,7 @@ use ratatui::Frame;
 pub fn render_groups(
     frame: &mut Frame,
     area: ratatui::layout::Rect,
-    groups: &[DuplicateGroup],
+    groups: &[&DuplicateGroup],
     cursor: usize,
     focused: bool,
 ) {
