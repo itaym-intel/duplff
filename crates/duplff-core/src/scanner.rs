@@ -4,8 +4,9 @@ use crate::error::{DuplffError, Result};
 use crate::models::{FileEntry, ScanConfig};
 use crate::progress::ProgressHandler;
 use ignore::overrides::OverrideBuilder;
+use crossbeam_channel as channel;
 use ignore::WalkBuilder;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use ignore::WalkState;
 
 /// Scan directories according to config, returning matching file entries.
 pub fn scan(config: &ScanConfig, progress: &dyn ProgressHandler) -> Result<Vec<FileEntry>> {
@@ -42,57 +43,68 @@ pub fn scan(config: &ScanConfig, progress: &dyn ProgressHandler) -> Result<Vec<F
         builder.overrides(overrides);
     }
 
-    let counter = AtomicUsize::new(0);
-    let mut files = Vec::new();
+    let min_size = config.min_size;
+    let max_size = config.max_size;
+    let extensions = config.extensions.clone();
 
-    for result in builder.build() {
-        let entry = result.map_err(|e| DuplffError::ScanError(e.to_string()))?;
+    let (tx, rx) = channel::unbounded();
 
-        // Skip directories
-        match entry.file_type() {
-            Some(ft) if ft.is_file() => {}
-            _ => continue,
-        };
+    builder.build_parallel().run(|| {
+        let tx = tx.clone();
+        let extensions = extensions.clone();
+        Box::new(move |result| {
+            let entry = match result {
+                Ok(e) => e,
+                Err(_) => return WalkState::Continue,
+            };
 
-        let metadata = entry
-            .metadata()
-            .map_err(|e| DuplffError::ScanError(e.to_string()))?;
-        let size = metadata.len();
-
-        // Apply size filter
-        if size < config.min_size {
-            continue;
-        }
-        if let Some(max) = config.max_size {
-            if size > max {
-                continue;
+            // Skip non-files
+            match entry.file_type() {
+                Some(ft) if ft.is_file() => {}
+                _ => return WalkState::Continue,
             }
-        }
 
-        // Apply extension filter
-        if let Some(ref exts) = config.extensions {
-            let file_ext = entry.path().extension().and_then(|e| e.to_str());
-            match file_ext {
-                Some(ext) if exts.iter().any(|e| e.eq_ignore_ascii_case(ext)) => {}
-                _ => continue,
+            let metadata = match entry.metadata() {
+                Ok(m) => m,
+                Err(_) => return WalkState::Continue,
+            };
+            let size = metadata.len();
+
+            // Size filter
+            if size < min_size {
+                return WalkState::Continue;
             }
-        }
+            if let Some(max) = max_size {
+                if size > max {
+                    return WalkState::Continue;
+                }
+            }
 
-        let modified = metadata.modified().unwrap_or(std::time::UNIX_EPOCH);
-        files.push(FileEntry {
-            path: entry.into_path(),
-            size,
-            modified,
-        });
+            // Extension filter
+            if let Some(ref exts) = extensions {
+                let file_ext = entry.path().extension().and_then(|e| e.to_str());
+                match file_ext {
+                    Some(ext) if exts.iter().any(|e| e.eq_ignore_ascii_case(ext)) => {}
+                    _ => return WalkState::Continue,
+                }
+            }
 
-        let count = counter.fetch_add(1, Ordering::Relaxed) + 1;
-        if count.is_multiple_of(1000) {
-            progress.on_scan_progress(count);
-        }
-    }
+            let modified = metadata.modified().unwrap_or(std::time::UNIX_EPOCH);
+            let _ = tx.send(FileEntry {
+                path: entry.into_path(),
+                size,
+                modified,
+            });
 
-    let total = files.len();
-    progress.on_scan_progress(total);
+            WalkState::Continue
+        })
+    });
+
+    // Drop the original sender so rx terminates
+    drop(tx);
+
+    let files: Vec<FileEntry> = rx.iter().collect();
+    progress.on_scan_progress(files.len());
     Ok(files)
 }
 
