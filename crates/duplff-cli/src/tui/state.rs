@@ -9,6 +9,35 @@ pub enum FocusPane {
     Detail,
 }
 
+/// Sort mode for the groups pane.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SortMode {
+    WastedDesc,
+    SizeDesc,
+    FileCountDesc,
+    PathAsc,
+}
+
+impl SortMode {
+    pub fn next(self) -> Self {
+        match self {
+            SortMode::WastedDesc => SortMode::SizeDesc,
+            SortMode::SizeDesc => SortMode::FileCountDesc,
+            SortMode::FileCountDesc => SortMode::PathAsc,
+            SortMode::PathAsc => SortMode::WastedDesc,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            SortMode::WastedDesc => "wasted",
+            SortMode::SizeDesc => "size",
+            SortMode::FileCountDesc => "files",
+            SortMode::PathAsc => "path",
+        }
+    }
+}
+
 /// The application state machine.
 pub enum AppState {
     /// Scanning in progress.
@@ -26,6 +55,7 @@ pub enum AppState {
         focus: FocusPane,
         marked: HashSet<PathBuf>,
         filter: Option<String>,
+        sort_mode: SortMode,
     },
     /// Confirmation dialog before deletion.
     Confirm {
@@ -35,6 +65,7 @@ pub enum AppState {
         focus: FocusPane,
         marked: HashSet<PathBuf>,
         filter: Option<String>,
+        sort_mode: SortMode,
         message: String,
     },
     /// Help overlay.
@@ -45,6 +76,7 @@ pub enum AppState {
         focus: FocusPane,
         marked: HashSet<PathBuf>,
         filter: Option<String>,
+        sort_mode: SortMode,
     },
     /// Fatal error.
     Error(String),
@@ -76,6 +108,7 @@ impl AppState {
             focus: FocusPane::Groups,
             marked: HashSet::new(),
             filter: None,
+            sort_mode: SortMode::WastedDesc,
         }
     }
 }

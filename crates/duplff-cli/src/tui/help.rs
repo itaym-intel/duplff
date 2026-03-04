@@ -49,6 +49,10 @@ pub fn render_help(frame: &mut Frame, area: Rect) {
             Span::styled("/           ", Style::default().fg(Color::Yellow)),
             Span::raw("Filter groups by path"),
         ]),
+        Line::from(vec![
+            Span::styled("s           ", Style::default().fg(Color::Yellow)),
+            Span::raw("Cycle sort mode"),
+        ]),
         Line::from(""),
         Line::from(vec![
             Span::styled("q / Esc     ", Style::default().fg(Color::Yellow)),

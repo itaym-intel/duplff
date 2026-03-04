@@ -17,7 +17,7 @@ use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
-use state::{AppState, FocusPane, ScanPhase};
+use state::{AppState, FocusPane, ScanPhase, SortMode};
 use std::io::stdout;
 use std::sync::mpsc;
 use std::time::Duration;
@@ -119,6 +119,7 @@ fn render(frame: &mut Frame, state: &AppState) {
             focus,
             marked,
             filter,
+            sort_mode,
         } => {
             render_results(
                 frame,
@@ -129,6 +130,7 @@ fn render(frame: &mut Frame, state: &AppState) {
                 *focus,
                 marked,
                 filter,
+                *sort_mode,
             );
         }
         AppState::Confirm {
@@ -138,6 +140,7 @@ fn render(frame: &mut Frame, state: &AppState) {
             focus,
             marked,
             filter,
+            sort_mode,
             message,
         } => {
             render_results(
@@ -149,6 +152,7 @@ fn render(frame: &mut Frame, state: &AppState) {
                 *focus,
                 marked,
                 filter,
+                *sort_mode,
             );
             render_confirm(frame, area, message);
         }
@@ -159,6 +163,7 @@ fn render(frame: &mut Frame, state: &AppState) {
             focus,
             marked,
             filter,
+            sort_mode,
         } => {
             render_results(
                 frame,
@@ -169,6 +174,7 @@ fn render(frame: &mut Frame, state: &AppState) {
                 *focus,
                 marked,
                 filter,
+                *sort_mode,
             );
             help::render_help(frame, area);
         }
@@ -209,6 +215,7 @@ fn render_results(
     focus: FocusPane,
     marked: &std::collections::HashSet<std::path::PathBuf>,
     filter: &Option<String>,
+    sort_mode: SortMode,
 ) {
     // Layout: summary bar (1 line) + groups pane (40%) + detail pane (rest) + help bar (1 line)
     let chunks = Layout::default()
@@ -249,6 +256,23 @@ fn render_results(
         report.groups.iter().collect()
     };
 
+    // Apply sort
+    let mut sorted_groups = filtered_groups;
+    match sort_mode {
+        SortMode::WastedDesc => {
+            sorted_groups.sort_by_key(|g| std::cmp::Reverse(g.wasted_bytes()));
+        }
+        SortMode::SizeDesc => {
+            sorted_groups.sort_by_key(|g| std::cmp::Reverse(g.size));
+        }
+        SortMode::FileCountDesc => {
+            sorted_groups.sort_by_key(|g| std::cmp::Reverse(g.duplicates.len()));
+        }
+        SortMode::PathAsc => {
+            sorted_groups.sort_by(|a, b| a.keep.entry.path.cmp(&b.keep.entry.path));
+        }
+    }
+
     // Summary bar
     let summary = Line::from(vec![
         Span::styled(
@@ -281,13 +305,14 @@ fn render_results(
     groups::render_groups(
         frame,
         chunks[1],
-        &filtered_groups,
+        &sorted_groups,
         group_cursor,
         focus == FocusPane::Groups,
+        sort_mode.label(),
     );
 
     // Detail pane
-    let current_group = filtered_groups.get(group_cursor).copied();
+    let current_group = sorted_groups.get(group_cursor).copied();
     detail::render_detail(
         frame,
         chunks[2],
@@ -395,6 +420,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
             focus,
             marked,
             filter,
+            sort_mode,
         } => {
             // Any key dismisses help
             let r = std::mem::replace(
@@ -412,6 +438,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
             let f = *focus;
             let m = std::mem::take(marked);
             let flt = std::mem::take(filter);
+            let sm = *sort_mode;
             *state = AppState::Results {
                 report: r,
                 group_cursor: gc,
@@ -419,6 +446,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                 focus: f,
                 marked: m,
                 filter: flt,
+                sort_mode: sm,
             };
         }
         AppState::Confirm {
@@ -428,6 +456,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
             focus,
             marked,
             filter,
+            sort_mode,
             ..
         } => match key.code {
             KeyCode::Char('y') | KeyCode::Char('Y') => {
@@ -471,6 +500,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                 new_report.total_wasted_bytes =
                     new_report.groups.iter().map(|g| g.wasted_bytes()).sum();
 
+                let sm = *sort_mode;
                 *state = AppState::Results {
                     report: new_report,
                     group_cursor: 0,
@@ -478,6 +508,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                     focus: FocusPane::Groups,
                     marked: std::collections::HashSet::new(),
                     filter: None,
+                    sort_mode: sm,
                 };
             }
             _ => {
@@ -497,6 +528,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                 let f = *focus;
                 let m = std::mem::take(marked);
                 let flt = std::mem::take(filter);
+                let sm = *sort_mode;
                 *state = AppState::Results {
                     report: r,
                     group_cursor: gc,
@@ -504,6 +536,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                     focus: f,
                     marked: m,
                     filter: flt,
+                    sort_mode: sm,
                 };
             }
         },
@@ -514,6 +547,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
             focus,
             marked,
             filter,
+            sort_mode,
         } => {
             // Filter input mode — capture keystrokes
             if let Some(ref mut f) = filter {
@@ -549,6 +583,10 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                 KeyCode::Char('/') => {
                     *filter = Some(String::new());
                 }
+                KeyCode::Char('s') => {
+                    *sort_mode = sort_mode.next();
+                    *group_cursor = 0;
+                }
                 KeyCode::Char('?') => {
                     let r = std::mem::replace(
                         report,
@@ -565,6 +603,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                     let f = *focus;
                     let m = std::mem::take(marked);
                     let flt = std::mem::take(filter);
+                    let sm = *sort_mode;
                     *state = AppState::Help {
                         report: r,
                         group_cursor: gc,
@@ -572,6 +611,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                         focus: f,
                         marked: m,
                         filter: flt,
+                        sort_mode: sm,
                     };
                 }
                 KeyCode::Tab => {
@@ -676,6 +716,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                         let f = *focus;
                         let m = std::mem::take(marked);
                         let flt = std::mem::take(filter);
+                        let sm = *sort_mode;
                         *state = AppState::Confirm {
                             report: r,
                             group_cursor: gc,
@@ -683,6 +724,7 @@ fn handle_input(key: KeyEvent, state: &mut AppState) -> bool {
                             focus: f,
                             marked: m,
                             filter: flt,
+                            sort_mode: sm,
                             message,
                         };
                     }

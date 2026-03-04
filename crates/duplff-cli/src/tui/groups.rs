@@ -12,6 +12,7 @@ pub fn render_groups(
     groups: &[&DuplicateGroup],
     cursor: usize,
     focused: bool,
+    sort_label: &str,
 ) {
     let header = Row::new(vec![
         Cell::from("#"),
@@ -57,7 +58,7 @@ pub fn render_groups(
     .header(header)
     .block(
         Block::default()
-            .title(" Duplicate Groups ")
+            .title(format!(" Duplicate Groups [sort: {}] ", sort_label))
             .borders(Borders::ALL)
             .border_style(border_style),
     )
