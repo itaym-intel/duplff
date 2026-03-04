@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --color-keep: oklch(0.723 0.191 142.5);
+  --color-delete: oklch(0.637 0.237 25.3);
+  --color-warn: oklch(0.795 0.184 86.0);
+  --color-info: oklch(0.551 0.014 264.5);
+  --color-active: oklch(0.715 0.143 215.2);
+}
