@@ -14,6 +14,8 @@ fn main() {
         non_interactive::run_json(&config)
     } else if args.dry_run {
         non_interactive::run_dry_run(&config)
+    } else if args.csv {
+        non_interactive::run_csv(&config)
     } else {
         tui::run(config)
     };

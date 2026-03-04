@@ -41,6 +41,10 @@ pub struct Cli {
     #[arg(long)]
     pub dry_run: bool,
 
+    /// Output CSV report (non-interactive)
+    #[arg(long)]
+    pub csv: bool,
+
     /// Disable hash cache
     #[arg(long)]
     pub no_cache: bool,

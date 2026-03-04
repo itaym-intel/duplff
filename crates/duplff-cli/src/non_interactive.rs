@@ -2,6 +2,7 @@ use crate::format::human_bytes;
 use duplff_core::actions;
 use duplff_core::models::ScanConfig;
 use duplff_core::progress::NoopProgress;
+use std::io;
 
 /// Run in JSON mode: scan and print the report as JSON to stdout.
 pub fn run_json(config: &ScanConfig) -> Result<(), Box<dyn std::error::Error>> {
@@ -59,5 +60,40 @@ pub fn run_dry_run(config: &ScanConfig) -> Result<(), Box<dyn std::error::Error>
         human_bytes(plan.bytes_to_reclaim),
     );
 
+    Ok(())
+}
+
+/// Run in CSV mode: scan and print a CSV report to stdout.
+pub fn run_csv(config: &ScanConfig) -> Result<(), Box<dyn std::error::Error>> {
+    let report = duplff_core::find_duplicates(config, &NoopProgress)?;
+
+    let mut wtr = csv::Writer::from_writer(io::stdout());
+    wtr.write_record(["group_hash", "file_path", "size", "status", "keep_reason"])?;
+
+    for group in &report.groups {
+        let hash = hex::encode(group.hash);
+
+        // Keep file
+        wtr.write_record([
+            &hash,
+            &group.keep.entry.path.display().to_string(),
+            &group.keep.entry.size.to_string(),
+            "keep",
+            &group.keep.reason.to_string(),
+        ])?;
+
+        // Duplicates
+        for dup in &group.duplicates {
+            wtr.write_record([
+                &hash,
+                &dup.entry.path.display().to_string(),
+                &dup.entry.size.to_string(),
+                "duplicate",
+                "",
+            ])?;
+        }
+    }
+
+    wtr.flush()?;
     Ok(())
 }
