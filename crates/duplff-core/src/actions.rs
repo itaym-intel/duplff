@@ -80,14 +80,49 @@ pub fn trash_duplicates(groups: &[DuplicateGroup]) -> Result<ActionLog> {
     })
 }
 
+/// Result of an undo operation.
+#[derive(Debug, Clone)]
+pub struct UndoResult {
+    pub restored: Vec<PathBuf>,
+    pub not_found: Vec<PathBuf>,
+}
+
 /// Undo a previous trash operation by restoring files from the OS trash.
-///
-/// TODO: Implement using `trash::os_limited::list()` to find and restore trashed files.
-/// This is deferred to post-MVP. The `ActionLog` structure is already in place to support this.
-pub fn undo(_log: &ActionLog) -> Result<()> {
-    Err(DuplffError::TrashError(
-        "undo is not yet implemented".into(),
-    ))
+pub fn undo(log: &ActionLog) -> Result<UndoResult> {
+    let trash_items = trash::os_limited::list()
+        .map_err(|e| DuplffError::TrashError(format!("failed to list trash: {e}")))?;
+
+    let mut restored = Vec::new();
+    let mut not_found = Vec::new();
+
+    for record in &log.actions {
+        // Find matching trash item by original path
+        let matching: Vec<_> = trash_items
+            .iter()
+            .filter(|item| {
+                let original = item.original_parent.join(&item.name);
+                original == record.path
+            })
+            .cloned()
+            .collect();
+
+        if matching.is_empty() {
+            not_found.push(record.path.clone());
+        } else {
+            // Restore the most recently trashed matching item
+            if let Err(e) = trash::os_limited::restore_all(matching.into_iter().take(1)) {
+                not_found.push(record.path.clone());
+                eprintln!(
+                    "warning: could not restore {}: {e}",
+                    record.path.display()
+                );
+            } else {
+                restored.push(record.path.clone());
+            }
+        }
+    }
+
+    Ok(UndoResult { restored, not_found })
 }
 
 #[cfg(test)]
@@ -142,6 +177,21 @@ mod tests {
         assert!(!plan
             .files_to_delete
             .contains(&std::path::PathBuf::from("/keep.txt")));
+    }
+
+    #[test]
+    fn undo_with_no_matching_trash_items() {
+        let log = ActionLog {
+            actions: vec![ActionRecord {
+                path: "/nonexistent/file.txt".into(),
+                action: ActionType::Trashed,
+            }],
+            bytes_reclaimed: 100,
+            timestamp: "0".to_string(),
+        };
+        let result = undo(&log).unwrap();
+        assert!(result.restored.is_empty());
+        assert_eq!(result.not_found.len(), 1);
     }
 
     #[test]
