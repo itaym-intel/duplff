@@ -25,6 +25,10 @@ pub struct Cli {
     #[arg(short = 'p', long = "priority")]
     pub priority: Option<Vec<PathBuf>>,
 
+    /// Exclude directories/patterns (glob, repeatable)
+    #[arg(short = 'x', long = "exclude")]
+    pub exclude: Option<Vec<String>>,
+
     /// Follow symbolic links
     #[arg(short = 'L', long = "follow-symlinks")]
     pub follow_symlinks: bool,
@@ -48,6 +52,7 @@ impl Cli {
             max_size: self.max_size,
             priority_paths: self.priority.clone().unwrap_or_default(),
             follow_symlinks: self.follow_symlinks,
+            exclude_patterns: self.exclude.clone().unwrap_or_default(),
         }
     }
 }

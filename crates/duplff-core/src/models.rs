@@ -14,6 +14,7 @@ pub struct ScanConfig {
     pub max_size: Option<u64>,
     pub priority_paths: Vec<PathBuf>,
     pub follow_symlinks: bool,
+    pub exclude_patterns: Vec<String>,
 }
 
 impl Default for ScanConfig {
@@ -25,6 +26,7 @@ impl Default for ScanConfig {
             max_size: None,
             priority_paths: Vec::new(),
             follow_symlinks: false,
+            exclude_patterns: Vec::new(),
         }
     }
 }

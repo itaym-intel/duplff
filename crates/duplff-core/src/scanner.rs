@@ -3,6 +3,7 @@
 use crate::error::{DuplffError, Result};
 use crate::models::{FileEntry, ScanConfig};
 use crate::progress::ProgressHandler;
+use ignore::overrides::OverrideBuilder;
 use ignore::WalkBuilder;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -24,6 +25,22 @@ pub fn scan(config: &ScanConfig, progress: &dyn ProgressHandler) -> Result<Vec<F
         .git_ignore(true)
         .git_global(true)
         .git_exclude(true);
+
+    if !config.exclude_patterns.is_empty() {
+        // OverrideBuilder needs a base path for relative patterns; roots[0] is fine
+        // because overrides apply to all paths once attached to WalkBuilder.
+        let mut overrides = OverrideBuilder::new(&config.roots[0]);
+        for pattern in &config.exclude_patterns {
+            // Negate the pattern so it's excluded
+            overrides
+                .add(&format!("!{pattern}"))
+                .map_err(|e| DuplffError::ScanError(e.to_string()))?;
+        }
+        let overrides = overrides
+            .build()
+            .map_err(|e| DuplffError::ScanError(e.to_string()))?;
+        builder.overrides(overrides);
+    }
 
     let counter = AtomicUsize::new(0);
     let mut files = Vec::new();
@@ -136,6 +153,21 @@ mod tests {
         };
         let files = scan(&config, &NoopProgress).unwrap();
         assert!(files.iter().all(|f| f.size >= 5));
+    }
+
+    #[test]
+    fn excludes_matching_patterns() {
+        let dir = make_test_tree();
+        let config = ScanConfig {
+            roots: vec![dir.path().to_path_buf()],
+            min_size: 1,
+            exclude_patterns: vec!["sub".to_string()],
+            ..ScanConfig::default()
+        };
+        let files = scan(&config, &NoopProgress).unwrap();
+        // sub/c.rs and sub/d.txt should be excluded
+        assert!(files.iter().all(|f| !f.path.to_str().unwrap().contains("sub")));
+        assert_eq!(files.len(), 2); // a.txt and b.py only
     }
 
     #[test]
