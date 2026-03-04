@@ -28,6 +28,7 @@ pub enum ActionType {
 pub struct ActionLog {
     pub actions: Vec<ActionRecord>,
     pub bytes_reclaimed: u64,
+    pub timestamp: String,
 }
 
 /// Produce a dry-run plan: which files would be deleted and how much space reclaimed.
@@ -66,9 +67,16 @@ pub fn trash_duplicates(groups: &[DuplicateGroup]) -> Result<ActionLog> {
         }
     }
 
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+        .to_string();
+
     Ok(ActionLog {
         actions,
         bytes_reclaimed,
+        timestamp,
     })
 }
 

@@ -7,6 +7,7 @@ pub mod cache;
 pub mod deduper;
 pub mod error;
 pub mod hasher;
+pub mod log_store;
 pub mod models;
 pub mod progress;
 pub mod ranker;

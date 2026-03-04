@@ -17,6 +17,9 @@ pub enum DuplffError {
 
     #[error("cache error: {0}")]
     CacheError(String),
+
+    #[error("log error: {0}")]
+    LogError(String),
 }
 
 /// Convenience alias used throughout duplff-core.
