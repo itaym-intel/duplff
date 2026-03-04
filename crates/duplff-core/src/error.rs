@@ -14,6 +14,9 @@ pub enum DuplffError {
 
     #[error("trash error: {0}")]
     TrashError(String),
+
+    #[error("cache error: {0}")]
+    CacheError(String),
 }
 
 /// Convenience alias used throughout duplff-core.

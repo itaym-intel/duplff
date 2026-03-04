@@ -3,6 +3,7 @@
 //! Provides scanning, hashing, grouping, ranking, and safe removal of duplicate files.
 
 pub mod actions;
+pub mod cache;
 pub mod deduper;
 pub mod error;
 pub mod hasher;
@@ -28,8 +29,13 @@ pub fn find_duplicates(
     let total_files_scanned = files.len();
     let total_bytes_scanned: u64 = files.iter().map(|f| f.size).sum();
 
-    // 2. Group by size, partial hash, full hash
-    let duplicate_groups = deduper::find_duplicate_groups(files, progress)?;
+    // 2. Group by size, partial hash, full hash — with cache
+    let cache = if config.no_cache {
+        None
+    } else {
+        cache::HashCache::open_default().ok()
+    };
+    let duplicate_groups = deduper::find_duplicate_groups(files, progress, cache.as_ref())?;
 
     // 3. Rank groups
     let groups = ranker::rank_groups(duplicate_groups, &config.priority_paths);

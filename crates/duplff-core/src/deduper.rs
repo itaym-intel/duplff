@@ -1,5 +1,6 @@
 // Deduplication logic for duplff-core
 
+use crate::cache::HashCache;
 use crate::error::Result;
 use crate::hasher;
 use crate::models::{FileEntry, HashedFile};
@@ -24,6 +25,7 @@ pub fn group_by_size(files: Vec<FileEntry>) -> Vec<Vec<FileEntry>> {
 pub fn find_duplicate_groups(
     files: Vec<FileEntry>,
     progress: &dyn ProgressHandler,
+    cache: Option<&HashCache>,
 ) -> Result<Vec<Vec<HashedFile>>> {
     // Stage 1: Group by size
     let size_groups = group_by_size(files);
@@ -37,7 +39,22 @@ pub fn find_duplicate_groups(
     let partial_results: Vec<Result<(FileEntry, [u8; 32])>> = candidates
         .into_par_iter()
         .map(|entry| {
-            let hash = hasher::partial_hash(&entry.path)?;
+            let mtime = entry
+                .modified
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let hash = if let Some(cached) =
+                cache.and_then(|c| c.get_partial(&entry.path, entry.size, mtime))
+            {
+                cached
+            } else {
+                let h = hasher::partial_hash(&entry.path)?;
+                if let Some(c) = cache {
+                    c.put_partial(&entry.path, entry.size, mtime, &h);
+                }
+                h
+            };
             let count = hashed_count.fetch_add(1, Ordering::Relaxed) + 1;
             if count.is_multiple_of(100) {
                 progress.on_hash_progress(count, total);
@@ -74,7 +91,22 @@ pub fn find_duplicate_groups(
     let full_results: Vec<Result<HashedFile>> = candidates
         .into_par_iter()
         .map(|entry| {
-            let hash = hasher::full_hash(&entry.path)?;
+            let mtime = entry
+                .modified
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let hash = if let Some(cached) =
+                cache.and_then(|c| c.get_full(&entry.path, entry.size, mtime))
+            {
+                cached
+            } else {
+                let h = hasher::full_hash(&entry.path)?;
+                if let Some(c) = cache {
+                    c.put_full(&entry.path, entry.size, mtime, &h);
+                }
+                h
+            };
             let count = hashed_count.fetch_add(1, Ordering::Relaxed) + 1;
             if count.is_multiple_of(100) {
                 progress.on_hash_progress(count, total);
@@ -186,7 +218,7 @@ mod tests {
             })
             .collect();
 
-        let groups = find_duplicate_groups(files, &NoopProgress).unwrap();
+        let groups = find_duplicate_groups(files, &NoopProgress, None).unwrap();
         // a.txt and b.txt are duplicates (same content = same hash)
         // c.txt has same size as a.txt and b.txt but different content
         // So there should be exactly 1 group with 2 files

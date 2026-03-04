@@ -15,6 +15,7 @@ pub struct ScanConfig {
     pub priority_paths: Vec<PathBuf>,
     pub follow_symlinks: bool,
     pub exclude_patterns: Vec<String>,
+    pub no_cache: bool,
 }
 
 impl Default for ScanConfig {
@@ -27,6 +28,7 @@ impl Default for ScanConfig {
             priority_paths: Vec::new(),
             follow_symlinks: false,
             exclude_patterns: Vec::new(),
+            no_cache: false,
         }
     }
 }

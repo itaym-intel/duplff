@@ -40,6 +40,10 @@ pub struct Cli {
     /// Show deletion plan without deleting (non-interactive)
     #[arg(long)]
     pub dry_run: bool,
+
+    /// Disable hash cache
+    #[arg(long)]
+    pub no_cache: bool,
 }
 
 impl Cli {
@@ -53,6 +57,7 @@ impl Cli {
             priority_paths: self.priority.clone().unwrap_or_default(),
             follow_symlinks: self.follow_symlinks,
             exclude_patterns: self.exclude.clone().unwrap_or_default(),
+            no_cache: self.no_cache,
         }
     }
 }
