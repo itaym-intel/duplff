@@ -7,3 +7,9 @@
   --color-info: oklch(0.551 0.014 264.5);
   --color-active: oklch(0.715 0.143 215.2);
 }
+
+body {
+  @apply bg-gray-900 text-gray-100 font-sans;
+  margin: 0;
+  padding: 0;
+}
