@@ -27,4 +27,5 @@ duplff-core = { path = "../../duplff-core" }
 csv = "1"
 hex = "0.4"
 open = "5"
+trash = "5"
 
