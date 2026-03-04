@@ -26,6 +26,7 @@ pub fn find_duplicate_groups(
     files: Vec<FileEntry>,
     progress: &dyn ProgressHandler,
     cache: Option<&HashCache>,
+    paranoid: bool,
 ) -> Result<Vec<Vec<HashedFile>>> {
     // Stage 1: Group by size
     let size_groups = group_by_size(files);
@@ -132,7 +133,17 @@ pub fn find_duplicate_groups(
     }
 
     // Keep only groups with 2+ files
-    let groups: Vec<Vec<HashedFile>> = full_map.into_values().filter(|g| g.len() > 1).collect();
+    let mut groups: Vec<Vec<HashedFile>> = full_map.into_values().filter(|g| g.len() > 1).collect();
+
+    // Paranoid verification: byte-by-byte compare all files in each group
+    if paranoid {
+        use crate::verify;
+        groups.retain(|group| {
+            let paths: Vec<&std::path::Path> =
+                group.iter().map(|hf| hf.entry.path.as_path()).collect();
+            verify::verify_group(&paths).unwrap_or(false)
+        });
+    }
 
     Ok(groups)
 }
@@ -218,7 +229,7 @@ mod tests {
             })
             .collect();
 
-        let groups = find_duplicate_groups(files, &NoopProgress, None).unwrap();
+        let groups = find_duplicate_groups(files, &NoopProgress, None, false).unwrap();
         // a.txt and b.txt are duplicates (same content = same hash)
         // c.txt has same size as a.txt and b.txt but different content
         // So there should be exactly 1 group with 2 files

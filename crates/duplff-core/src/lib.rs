@@ -12,6 +12,7 @@ pub mod models;
 pub mod progress;
 pub mod ranker;
 pub mod scanner;
+pub mod verify;
 
 use error::Result;
 use models::{DuplicateReport, ScanConfig};
@@ -36,7 +37,8 @@ pub fn find_duplicates(
     } else {
         cache::HashCache::open_default().ok()
     };
-    let duplicate_groups = deduper::find_duplicate_groups(files, progress, cache.as_ref())?;
+    let duplicate_groups =
+        deduper::find_duplicate_groups(files, progress, cache.as_ref(), config.paranoid)?;
 
     // 3. Rank groups
     let groups = ranker::rank_groups(duplicate_groups, &config.priority_paths);

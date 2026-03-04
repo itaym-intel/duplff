@@ -16,6 +16,7 @@ pub struct ScanConfig {
     pub follow_symlinks: bool,
     pub exclude_patterns: Vec<String>,
     pub no_cache: bool,
+    pub paranoid: bool,
 }
 
 impl Default for ScanConfig {
@@ -29,6 +30,7 @@ impl Default for ScanConfig {
             follow_symlinks: false,
             exclude_patterns: Vec::new(),
             no_cache: false,
+            paranoid: false,
         }
     }
 }

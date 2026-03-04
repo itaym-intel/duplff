@@ -44,6 +44,10 @@ pub struct Cli {
     /// Disable hash cache
     #[arg(long)]
     pub no_cache: bool,
+
+    /// Byte-by-byte verification after hash match
+    #[arg(long)]
+    pub paranoid: bool,
 }
 
 impl Cli {
@@ -58,6 +62,7 @@ impl Cli {
             follow_symlinks: self.follow_symlinks,
             exclude_patterns: self.exclude.clone().unwrap_or_default(),
             no_cache: self.no_cache,
+            paranoid: self.paranoid,
         }
     }
 }
