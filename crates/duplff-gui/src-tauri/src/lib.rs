@@ -20,6 +20,7 @@ pub fn run() {
             commands::dry_run,
             commands::list_action_logs,
             commands::undo_log,
+            commands::read_file_preview,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

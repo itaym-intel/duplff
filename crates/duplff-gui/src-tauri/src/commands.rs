@@ -228,3 +228,46 @@ pub fn open_in_file_manager(path: std::path::PathBuf) -> Result<(), String> {
     };
     open::that(&dir).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn read_file_preview(path: std::path::PathBuf, max_lines: usize) -> Result<String, String> {
+    use std::io::{BufRead, BufReader};
+
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+    let text_exts = [
+        "txt", "md", "rs", "py", "js", "ts", "jsx", "tsx", "css", "html",
+        "json", "toml", "yaml", "yml", "xml", "sh", "bash", "zsh", "c",
+        "cpp", "h", "hpp", "java", "go", "rb", "php", "sql", "svelte",
+        "vue", "conf", "cfg", "ini", "log", "csv", "makefile", "dockerfile",
+    ];
+    let name_lower = path.file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    let is_text = text_exts.contains(&ext.to_lowercase().as_str())
+        || ["makefile", "dockerfile", "readme", "license", "changelog"]
+            .iter()
+            .any(|n| name_lower == *n);
+
+    if !is_text {
+        return Err("not a text file".into());
+    }
+
+    let file = std::fs::File::open(&path).map_err(|e| e.to_string())?;
+    let reader = BufReader::new(file);
+    let mut lines = Vec::new();
+    let mut total_bytes = 0usize;
+    let max_bytes = 10 * 1024; // 10KB cap
+    let max_lines = max_lines.min(50);
+
+    for line in reader.lines() {
+        if lines.len() >= max_lines || total_bytes >= max_bytes {
+            break;
+        }
+        let line = line.map_err(|e| e.to_string())?;
+        total_bytes += line.len() + 1;
+        lines.push(line);
+    }
+
+    Ok(lines.join("\n"))
+}
