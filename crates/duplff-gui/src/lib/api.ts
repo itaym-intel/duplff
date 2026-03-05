@@ -60,3 +60,7 @@ export function onScanComplete(cb: (report: DuplicateReport) => void): Promise<U
 export function onScanError(cb: (message: string) => void): Promise<UnlistenFn> {
   return listen<string>('scan-error', (e) => cb(e.payload));
 }
+
+export async function readFilePreview(path: string, maxLines = 50): Promise<string> {
+  return invoke('read_file_preview', { path, maxLines });
+}

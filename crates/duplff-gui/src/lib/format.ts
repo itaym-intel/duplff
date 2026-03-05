@@ -1,3 +1,5 @@
+import type { Confidence, DuplicateGroup } from './types';
+
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -18,4 +20,40 @@ export function reasonLabel(reason: string): string {
     LexicographicFirst: 'First alphabetically',
   };
   return labels[reason] || reason;
+}
+
+export function confidenceLevel(group: DuplicateGroup): Confidence {
+  const reason = group.keep.reason;
+  if (reason === 'PriorityPath') return 'high';
+  if (reason === 'NewestModification') return 'high';
+  if (reason === 'DeepestPath') return 'medium';
+  return 'low';
+}
+
+export function confidenceColor(level: Confidence): string {
+  switch (level) {
+    case 'high': return 'text-keep';
+    case 'medium': return 'text-warn';
+    case 'low': return 'text-text-muted';
+  }
+}
+
+export function fileExtension(path: string): string {
+  const dot = path.lastIndexOf('.');
+  if (dot === -1) return '';
+  return path.slice(dot + 1).toLowerCase();
+}
+
+export function fileName(path: string): string {
+  return path.split('/').pop() || path;
+}
+
+export function dirName(path: string): string {
+  const parts = path.split('/');
+  parts.pop();
+  return parts.join('/');
+}
+
+export function formatNumber(n: number): string {
+  return n.toLocaleString();
 }

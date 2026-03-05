@@ -63,8 +63,9 @@ export interface ActionLogSummary {
   bytes_reclaimed: number;
 }
 
-export type Screen = 'setup' | 'progress' | 'results' | 'detail';
+export type Screen = 'setup' | 'progress' | 'results';
 export type SortMode = 'wasted' | 'size' | 'files' | 'path';
+export type Confidence = 'high' | 'medium' | 'low';
 
 export function defaultConfig(): ScanConfig {
   return {
