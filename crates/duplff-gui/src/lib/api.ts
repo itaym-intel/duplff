@@ -1,7 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
-  ScanConfig, DuplicateReport, TrashResult, UndoResult, HashProgress
+  ScanConfig, DuplicateReport, TrashResult, UndoResult, HashProgress,
+  DryRunPlan, ActionLogSummary
 } from './types';
 
 export async function startScan(config: ScanConfig): Promise<void> {
@@ -30,6 +31,18 @@ export async function exportCsv(): Promise<string> {
 
 export async function openInFileManager(path: string): Promise<void> {
   return invoke('open_in_file_manager', { path });
+}
+
+export async function dryRun(): Promise<DryRunPlan> {
+  return invoke('dry_run');
+}
+
+export async function listActionLogs(): Promise<ActionLogSummary[]> {
+  return invoke('list_action_logs');
+}
+
+export async function undoLog(timestamp: string): Promise<UndoResult> {
+  return invoke('undo_log', { timestamp });
 }
 
 export function onScanProgress(cb: (filesFound: number) => void): Promise<UnlistenFn> {

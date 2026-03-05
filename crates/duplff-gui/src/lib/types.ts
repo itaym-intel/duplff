@@ -51,6 +51,18 @@ export interface HashProgress {
   total: number;
 }
 
+export interface DryRunPlan {
+  files_to_delete: string[];
+  bytes_to_reclaim: number;
+  group_count: number;
+}
+
+export interface ActionLogSummary {
+  timestamp: string;
+  file_count: number;
+  bytes_reclaimed: number;
+}
+
 export type Screen = 'setup' | 'progress' | 'results' | 'detail';
 export type SortMode = 'wasted' | 'size' | 'files' | 'path';
 
