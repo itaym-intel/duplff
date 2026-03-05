@@ -1,3 +1,7 @@
 target/
-.claude/
+# Ignore .claude session data but keep docs and skills
+.claude/*
+!.claude/docs/
+!.claude/skills/
+!.claude/settings.local.json
 docs/plans/
