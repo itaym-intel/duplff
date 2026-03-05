@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { RankedFile } from '$lib/types';
-  import { formatBytes, reasonLabel } from '$lib/format';
+  import { reasonLabel } from '$lib/format';
   import { openInFileManager } from '$lib/api';
 
   export let keep: RankedFile;
@@ -9,31 +9,30 @@
   export let onToggle: (path: string) => void;
 </script>
 
-<div class="space-y-1">
-  <div class="flex items-center gap-3 bg-gray-800 rounded-lg px-4 py-3">
-    <span class="text-keep text-lg w-5 text-center">✓</span>
+<div class="space-y-0.5">
+  <!-- Keep file -->
+  <div class="flex items-center gap-3 rounded-md px-3 py-2 border-l-2 border-keep group">
     <div class="flex-1 min-w-0">
-      <p class="font-mono text-sm truncate" title={keep.entry.path}>{keep.entry.path}</p>
-      <p class="text-xs text-gray-500">{formatBytes(keep.entry.size)}</p>
+      <p class="font-mono text-xs text-gray-300 truncate" title={keep.entry.path}>{keep.entry.path}</p>
     </div>
-    <span class="text-xs bg-keep/20 text-keep px-2 py-0.5 rounded shrink-0">
-      Kept: {reasonLabel(keep.reason)}
-    </span>
+    <span class="text-[10px] text-gray-600">{reasonLabel(keep.reason)}</span>
     <button on:click={() => openInFileManager(keep.entry.path)}
-      class="text-xs text-gray-500 hover:text-active shrink-0">Open</button>
+      class="text-[10px] text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+      aria-label="Open in file manager">&#x1F4C2;</button>
   </div>
 
+  <!-- Duplicates -->
   {#each duplicates as dup}
-    <div class="flex items-center gap-3 bg-gray-800/50 rounded-lg px-4 py-3">
+    <div class="flex items-center gap-3 rounded-md px-3 py-2 border-l-2 border-transparent hover:bg-gray-800/30 group transition-colors">
       <input type="checkbox" checked={markedPaths.has(dup.entry.path)}
-        on:change={() => onToggle(dup.entry.path)} class="w-5 h-5 rounded" />
+        on:change={() => onToggle(dup.entry.path)}
+        class="w-3.5 h-3.5 rounded accent-active shrink-0" />
       <div class="flex-1 min-w-0">
-        <p class="font-mono text-sm truncate" title={dup.entry.path}>{dup.entry.path}</p>
-        <p class="text-xs text-gray-500">{formatBytes(dup.entry.size)}</p>
+        <p class="font-mono text-xs text-gray-400 truncate" title={dup.entry.path}>{dup.entry.path}</p>
       </div>
-      <span class="text-xs bg-delete/20 text-delete px-2 py-0.5 rounded shrink-0">Duplicate</span>
       <button on:click={() => openInFileManager(dup.entry.path)}
-        class="text-xs text-gray-500 hover:text-active shrink-0">Open</button>
+        class="text-[10px] text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+        aria-label="Open in file manager">&#x1F4C2;</button>
     </div>
   {/each}
 </div>

@@ -6,12 +6,19 @@
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
   let showConfirm = false;
-  let statusMessage: string | null = null;
+  let toast: { message: string; type: 'info' | 'error' } | null = null;
+  let toastTimer: ReturnType<typeof setTimeout>;
 
   $: group = $report?.groups[$selectedGroup] ?? null;
   $: groupMarked = group
     ? new Set([...$markedFiles].filter(p => group!.duplicates.some(d => d.entry.path === p)))
     : new Set<string>();
+
+  function showToast(message: string, type: 'info' | 'error' = 'info') {
+    clearTimeout(toastTimer);
+    toast = { message, type };
+    toastTimer = setTimeout(() => { toast = null; }, 3000);
+  }
 
   function toggleFile(path: string) {
     markedFiles.update(set => {
@@ -45,7 +52,7 @@
     const paths = Array.from(groupMarked);
     try {
       const result = await trashFiles(paths);
-      statusMessage = `Trashed ${result.count} files (${formatBytes(result.bytes_reclaimed)})`;
+      showToast(`Trashed ${result.count} files (${formatBytes(result.bytes_reclaimed)})`);
       markedFiles.update(set => {
         const next = new Set(set);
         for (const p of paths) next.delete(p);
@@ -54,59 +61,66 @@
       const updated = await getResults();
       if (updated) report.set(updated);
     } catch (e) {
-      statusMessage = `Error: ${e}`;
+      showToast(`${e}`, 'error');
     }
   }
 
   async function handleUndo() {
     try {
       const result = await undoLast();
-      statusMessage = `Restored ${result.restored} files`;
+      showToast(`Restored ${result.restored} files`);
     } catch (e) {
-      statusMessage = `Undo failed: ${e}`;
+      showToast(`Undo failed: ${e}`, 'error');
     }
   }
 </script>
 
 <div class="flex flex-col h-screen">
-  <div class="bg-gray-800 border-b border-gray-700 px-6 py-3">
-    <div class="flex items-center gap-4">
-      <button on:click={() => currentScreen.set('results')} class="text-gray-400 hover:text-white text-sm">← Back</button>
-      {#if group}
-        <div class="flex items-center gap-4 text-sm text-gray-400">
-          <span>Size: <span class="text-gray-200 font-mono">{formatBytes(group.size)}</span></span>
-          <span>Files: <span class="text-gray-200 font-mono">{group.duplicates.length + 1}</span></span>
-          <span class="text-delete">Wasted: <span class="font-mono">{formatBytes(group.size * group.duplicates.length)}</span></span>
-        </div>
-      {/if}
-    </div>
-  </div>
-
-  <div class="flex-1 overflow-auto p-6">
+  <!-- Header -->
+  <div class="flex items-center gap-3 px-4 py-2.5 border-b border-gray-800">
+    <button on:click={() => currentScreen.set('results')} class="text-xs text-gray-600 hover:text-gray-400 transition-colors">&larr; Results</button>
     {#if group}
-      <FileList keep={group.keep} duplicates={group.duplicates} markedPaths={groupMarked} onToggle={toggleFile} />
-    {:else}
-      <p class="text-gray-500">Group not found.</p>
+      <span class="text-gray-800">&#47;</span>
+      <div class="flex items-center gap-3 text-xs text-gray-500">
+        <span>Size <span class="font-mono text-gray-400">{formatBytes(group.size)}</span></span>
+        <span>Files <span class="font-mono text-gray-400">{group.duplicates.length + 1}</span></span>
+        <span class="text-delete">Wasted <span class="font-mono">{formatBytes(group.size * group.duplicates.length)}</span></span>
+      </div>
+      <span class="ml-auto text-[10px] font-mono text-gray-700 select-all" title="Full hash">{Array.from(group.hash.slice(0, 8), b => b.toString(16).padStart(2, '0')).join('')}...</span>
     {/if}
   </div>
 
-  <div class="bg-gray-800 border-t border-gray-700 px-6 py-3 flex items-center justify-between">
-    <div class="flex gap-2">
-      <button on:click={selectAllDuplicates} class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded">Select All</button>
-      <button on:click={deselectAll} class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded">Deselect All</button>
+  <!-- File List -->
+  <div class="flex-1 overflow-auto p-4">
+    {#if group}
+      <FileList keep={group.keep} duplicates={group.duplicates} markedPaths={groupMarked} onToggle={toggleFile} />
+    {:else}
+      <p class="text-gray-600 text-sm">Group not found.</p>
+    {/if}
+  </div>
+
+  <!-- Action Bar -->
+  <div class="flex items-center justify-between px-4 py-2 border-t border-gray-800">
+    <div class="flex gap-1.5">
+      <button on:click={selectAllDuplicates} class="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors">Select All</button>
+      <button on:click={deselectAll} class="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors">Clear</button>
     </div>
-    <div class="flex gap-2">
-      <button on:click={handleUndo} class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded">Undo</button>
+    <div class="flex gap-1.5">
+      <button on:click={handleUndo} class="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors">Undo</button>
       {#if groupMarked.size > 0}
-        <button on:click={() => showConfirm = true} class="text-sm bg-delete hover:bg-red-600 px-3 py-1.5 rounded">
-          Trash {groupMarked.size} files
+        <button on:click={() => showConfirm = true} class="text-xs bg-delete/10 text-delete hover:bg-delete/20 px-2.5 py-1 rounded transition-colors">
+          Trash {groupMarked.size}
         </button>
       {/if}
     </div>
   </div>
 
-  {#if statusMessage}
-    <div class="bg-gray-800 border-t border-gray-700 px-6 py-2 text-sm text-gray-400">{statusMessage}</div>
+  <!-- Toast -->
+  {#if toast}
+    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 text-xs px-3 py-1.5 rounded-md shadow-lg
+      {toast.type === 'error' ? 'bg-delete/20 text-delete border border-delete/30' : 'bg-gray-800 text-gray-300 border border-gray-700'}">
+      {toast.message}
+    </div>
   {/if}
 </div>
 

@@ -52,56 +52,46 @@
   $: progressPct = hashTotal > 0 ? Math.round((hashDone / hashTotal) * 100) : 0;
 </script>
 
-<div class="max-w-lg mx-auto p-8 mt-20">
-  <h2 class="text-2xl font-bold mb-6">
+<div class="flex items-center justify-center min-h-screen p-6">
+  <div class="w-full max-w-sm text-center">
     {#if error}
-      Scan failed
-    {:else if phase === 'scanning'}
-      Scanning files...
+      <p class="text-delete text-sm mb-6">{error}</p>
+      <button on:click={handleCancel} class="text-sm text-gray-500 hover:text-gray-300 transition-colors">
+        Back to setup
+      </button>
     {:else}
-      Hashing files...
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-4">
+        {phase === 'scanning' ? 'Scanning' : 'Hashing'}
+      </p>
+
+      <div class="w-full bg-gray-800 rounded-full h-1 mb-6 overflow-hidden">
+        {#if phase === 'hashing' && hashTotal > 0}
+          <div class="bg-active h-full rounded-full transition-[width] duration-500 ease-out" style="width: {progressPct}%"></div>
+        {:else}
+          <div class="bg-active/30 h-full rounded-full w-full animate-[pulse_2s_ease-in-out_infinite]"></div>
+        {/if}
+      </div>
+
+      <div class="space-y-1 text-sm mb-8">
+        <div class="flex justify-between text-gray-500">
+          <span>Files found</span>
+          <span class="font-mono text-gray-300">{filesFound.toLocaleString()}</span>
+        </div>
+        {#if phase === 'hashing'}
+          <div class="flex justify-between text-gray-500">
+            <span>Hashed</span>
+            <span class="font-mono text-gray-300">{hashDone.toLocaleString()} / {hashTotal.toLocaleString()}</span>
+          </div>
+        {/if}
+        <div class="flex justify-between text-gray-500">
+          <span>Elapsed</span>
+          <span class="font-mono text-gray-300">{formatTime(elapsed)}</span>
+        </div>
+      </div>
+
+      <button on:click={handleCancel} class="text-sm text-gray-500 hover:text-gray-300 transition-colors">
+        Cancel
+      </button>
     {/if}
-  </h2>
-
-  {#if error}
-    <div class="bg-red-900/30 border border-delete rounded-lg p-4 mb-6">
-      <p class="text-delete">{error}</p>
-    </div>
-    <button on:click={handleCancel} class="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg">
-      Back to setup
-    </button>
-  {:else}
-    <div class="w-full bg-gray-800 rounded-full h-3 mb-6 overflow-hidden">
-      {#if phase === 'hashing' && hashTotal > 0}
-        <div class="bg-active h-full rounded-full transition-all duration-300" style="width: {progressPct}%"></div>
-      {:else}
-        <div class="bg-active h-full rounded-full animate-pulse w-full opacity-30"></div>
-      {/if}
-    </div>
-
-    <div class="space-y-2 text-sm text-gray-400 mb-8">
-      <div class="flex justify-between">
-        <span>Files found</span>
-        <span class="text-gray-200 font-mono">{filesFound.toLocaleString()}</span>
-      </div>
-      {#if phase === 'hashing'}
-        <div class="flex justify-between">
-          <span>Files hashed</span>
-          <span class="text-gray-200 font-mono">{hashDone.toLocaleString()} / {hashTotal.toLocaleString()}</span>
-        </div>
-        <div class="flex justify-between">
-          <span>Progress</span>
-          <span class="text-gray-200 font-mono">{progressPct}%</span>
-        </div>
-      {/if}
-      <div class="flex justify-between">
-        <span>Elapsed</span>
-        <span class="text-gray-200 font-mono">{formatTime(elapsed)}</span>
-      </div>
-    </div>
-
-    <button on:click={handleCancel} class="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg">
-      Cancel
-    </button>
-  {/if}
+  </div>
 </div>

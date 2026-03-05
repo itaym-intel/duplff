@@ -7,6 +7,8 @@
   export let filterText: string;
   export let onSelectGroup: (index: number) => void;
 
+  $: maxWasted = Math.max(...groups.map(g => g.size * g.duplicates.length), 1);
+
   $: filteredGroups = groups
     .map((g, i) => ({ group: g, index: i }))
     .filter(({ group }) => {
@@ -32,32 +34,37 @@
   });
 </script>
 
-<div class="overflow-auto">
-  <table class="w-full text-sm">
-    <thead class="text-gray-400 text-left border-b border-gray-700">
-      <tr>
-        <th class="py-2 px-3 w-12">#</th>
-        <th class="py-2 px-3">Files</th>
-        <th class="py-2 px-3">Size</th>
-        <th class="py-2 px-3">Wasted</th>
-        <th class="py-2 px-3">Sample Path</th>
+<table class="w-full text-xs">
+  <thead>
+    <tr class="text-gray-600 text-left">
+      <th class="py-1.5 px-4 font-medium w-14">Files</th>
+      <th class="py-1.5 px-4 font-medium w-20">Size</th>
+      <th class="py-1.5 px-4 font-medium w-32">Wasted</th>
+      <th class="py-1.5 px-4 font-medium">Path</th>
+    </tr>
+  </thead>
+  <tbody>
+    {#each sortedGroups as { group, index }, i}
+      {@const wasted = group.size * group.duplicates.length}
+      {@const wastedPct = (wasted / maxWasted) * 100}
+      <tr
+        class="border-t border-gray-800/50 hover:bg-gray-800/30 cursor-pointer transition-colors {i % 2 === 0 ? '' : 'bg-gray-800/10'}"
+        on:click={() => onSelectGroup(index)}
+      >
+        <td class="py-1.5 px-4 font-mono text-gray-400">{group.duplicates.length + 1}</td>
+        <td class="py-1.5 px-4 font-mono text-gray-400">{formatBytes(group.size)}</td>
+        <td class="py-1.5 px-4">
+          <div class="flex items-center gap-2">
+            <div class="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+              <div class="h-full bg-delete/60 rounded-full" style="width: {wastedPct}%"></div>
+            </div>
+            <span class="font-mono text-delete text-[11px] w-16 text-right">{formatBytes(wasted)}</span>
+          </div>
+        </td>
+        <td class="py-1.5 px-4 font-mono text-gray-500 truncate max-w-xs" title={group.keep.entry.path}>
+          {truncatePath(group.keep.entry.path)}
+        </td>
       </tr>
-    </thead>
-    <tbody>
-      {#each sortedGroups as { group, index }, i}
-        <tr
-          class="border-b border-gray-800 hover:bg-gray-800/50 cursor-pointer transition-colors"
-          on:click={() => onSelectGroup(index)}
-        >
-          <td class="py-2 px-3 text-gray-500">{i + 1}</td>
-          <td class="py-2 px-3 font-mono">{group.duplicates.length + 1}</td>
-          <td class="py-2 px-3 font-mono">{formatBytes(group.size)}</td>
-          <td class="py-2 px-3 font-mono text-delete">{formatBytes(group.size * group.duplicates.length)}</td>
-          <td class="py-2 px-3 font-mono truncate max-w-xs" title={group.keep.entry.path}>
-            {truncatePath(group.keep.entry.path)}
-          </td>
-        </tr>
-      {/each}
-    </tbody>
-  </table>
-</div>
+    {/each}
+  </tbody>
+</table>

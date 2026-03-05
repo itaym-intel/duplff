@@ -7,11 +7,18 @@
   import type { SortMode } from '$lib/types';
 
   let showConfirm = false;
-  let statusMessage: string | null = null;
+  let toast: { message: string; type: 'info' | 'error' } | null = null;
+  let toastTimer: ReturnType<typeof setTimeout>;
 
   $: groups = $report?.groups ?? [];
   $: totalDuplicates = $report?.total_duplicates ?? 0;
   $: totalWasted = $report?.total_wasted_bytes ?? 0;
+
+  function showToast(message: string, type: 'info' | 'error' = 'info') {
+    clearTimeout(toastTimer);
+    toast = { message, type };
+    toastTimer = setTimeout(() => { toast = null; }, 3000);
+  }
 
   function selectGroup(index: number) {
     selectedGroup.set(index);
@@ -38,21 +45,21 @@
     showConfirm = false;
     try {
       const result = await trashFiles(paths);
-      statusMessage = `Trashed ${result.count} files (${formatBytes(result.bytes_reclaimed)})`;
+      showToast(`Trashed ${result.count} files (${formatBytes(result.bytes_reclaimed)})`);
       markedFiles.set(new Set());
       const updated = await getResults();
       if (updated) report.set(updated);
     } catch (e) {
-      statusMessage = `Error: ${e}`;
+      showToast(`${e}`, 'error');
     }
   }
 
   async function handleUndo() {
     try {
       const result = await undoLast();
-      statusMessage = `Restored ${result.restored} files`;
+      showToast(`Restored ${result.restored} files`);
     } catch (e) {
-      statusMessage = `Undo failed: ${e}`;
+      showToast(`Undo failed: ${e}`, 'error');
     }
   }
 
@@ -88,50 +95,58 @@
 </script>
 
 <div class="flex flex-col h-screen">
-  <div class="bg-gray-800 border-b border-gray-700 px-6 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-6 text-sm">
-      <span>{groups.length} groups</span>
-      <span>{totalDuplicates} duplicates</span>
-      <span class="text-delete">{formatBytes(totalWasted)} wasted</span>
+  <!-- Header -->
+  <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
+    <div class="flex items-center gap-4 text-xs text-gray-500">
+      <span><span class="font-mono text-gray-300">{groups.length}</span> groups</span>
+      <span><span class="font-mono text-gray-300">{totalDuplicates}</span> duplicates</span>
+      <span class="text-delete"><span class="font-mono">{formatBytes(totalWasted)}</span> wasted</span>
     </div>
-    <button on:click={newScan} class="text-sm text-gray-400 hover:text-white px-3 py-1">New Scan</button>
+    <button on:click={newScan} class="text-xs text-gray-600 hover:text-gray-400 transition-colors">New Scan</button>
   </div>
 
-  <div class="px-6 py-3 flex items-center gap-3 border-b border-gray-800">
-    <input type="text" placeholder="Filter by path..." bind:value={$filterText}
-      class="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm flex-1 focus:border-active focus:outline-none" />
+  <!-- Toolbar -->
+  <div class="flex items-center gap-2 px-4 py-2 border-b border-gray-800/50">
+    <input type="text" placeholder="Filter..." bind:value={$filterText}
+      class="bg-transparent border border-gray-800 rounded-md px-2.5 py-1 text-xs flex-1 focus:border-gray-600 focus:outline-none placeholder-gray-700" />
     <select value={$sortMode} on:change={(e) => handleSort(e.currentTarget.value)}
-      class="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm">
-      <option value="wasted">Sort: Wasted</option>
-      <option value="size">Sort: Size</option>
-      <option value="files">Sort: Files</option>
-      <option value="path">Sort: Path</option>
+      class="bg-transparent border border-gray-800 rounded-md px-2 py-1 text-xs text-gray-400">
+      <option value="wasted">Wasted</option>
+      <option value="size">Size</option>
+      <option value="files">Files</option>
+      <option value="path">Path</option>
     </select>
   </div>
 
+  <!-- Table -->
   <div class="flex-1 overflow-auto">
     <GroupTable {groups} sortMode={$sortMode} filterText={$filterText} onSelectGroup={selectGroup} />
   </div>
 
-  <div class="bg-gray-800 border-t border-gray-700 px-6 py-3 flex items-center justify-between">
-    <div class="flex gap-2">
-      <button on:click={autoSelectAll} class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded">Select All Duplicates</button>
-      <button on:click={clearSelection} class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded">Clear Selection</button>
+  <!-- Action Bar -->
+  <div class="flex items-center justify-between px-4 py-2 border-t border-gray-800">
+    <div class="flex gap-1.5">
+      <button on:click={autoSelectAll} class="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors">Select All</button>
+      <button on:click={clearSelection} class="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors">Clear</button>
       {#if $markedFiles.size > 0}
-        <button on:click={() => showConfirm = true} class="text-sm bg-delete hover:bg-red-600 px-3 py-1.5 rounded">
-          Trash {$markedFiles.size} files
+        <button on:click={() => showConfirm = true} class="text-xs bg-delete/10 text-delete hover:bg-delete/20 px-2.5 py-1 rounded transition-colors">
+          Trash {$markedFiles.size}
         </button>
       {/if}
     </div>
-    <div class="flex gap-2">
-      <button on:click={handleUndo} class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded">Undo</button>
-      <button on:click={handleExportJson} class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded">JSON</button>
-      <button on:click={handleExportCsv} class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded">CSV</button>
+    <div class="flex gap-1.5">
+      <button on:click={handleUndo} class="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors">Undo</button>
+      <button on:click={handleExportJson} class="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors">JSON</button>
+      <button on:click={handleExportCsv} class="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors">CSV</button>
     </div>
   </div>
 
-  {#if statusMessage}
-    <div class="bg-gray-800 border-t border-gray-700 px-6 py-2 text-sm text-gray-400">{statusMessage}</div>
+  <!-- Toast -->
+  {#if toast}
+    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 text-xs px-3 py-1.5 rounded-md shadow-lg transition-opacity
+      {toast.type === 'error' ? 'bg-delete/20 text-delete border border-delete/30' : 'bg-gray-800 text-gray-300 border border-gray-700'}">
+      {toast.message}
+    </div>
   {/if}
 </div>
 
