@@ -1,15 +1,11 @@
-<pre>
+```
        __            __________
   ____/ /_  ______  / / __/ __/
  / __  / / / / __ \/ / /_/ /_
 / /_/ / /_/ / /_/ / / __/ __/
 \__,_/\__,_/ .___/_/_/ /_/
           /_/
-</pre>
 
-Find and remove duplicate files.
-
-```
 Usage: duplff [OPTIONS] <PATHS>...
 
 Arguments:
