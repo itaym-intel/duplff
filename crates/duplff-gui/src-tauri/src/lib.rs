@@ -17,6 +17,9 @@ pub fn run() {
             commands::export_json,
             commands::export_csv,
             commands::open_in_file_manager,
+            commands::dry_run,
+            commands::list_action_logs,
+            commands::undo_log,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

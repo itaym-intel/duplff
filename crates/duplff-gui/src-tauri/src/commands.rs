@@ -16,6 +16,20 @@ pub struct UndoResult {
     pub not_found: usize,
 }
 
+#[derive(Serialize)]
+pub struct DryRunPlan {
+    pub files_to_delete: Vec<String>,
+    pub bytes_to_reclaim: u64,
+    pub group_count: usize,
+}
+
+#[derive(Serialize)]
+pub struct ActionLogSummary {
+    pub timestamp: String,
+    pub file_count: usize,
+    pub bytes_reclaimed: u64,
+}
+
 #[tauri::command]
 pub async fn start_scan(
     config: ScanConfig,
@@ -127,31 +141,82 @@ pub fn export_csv(state: State<'_, AppState>) -> Result<String, String> {
     let report = state.report.lock().unwrap();
     let report = report.as_ref().ok_or("no results to export")?;
     let mut wtr = csv::Writer::from_writer(vec![]);
-    wtr.write_record(["Group", "Status", "Path", "Size", "Hash"])
+    wtr.write_record(["Group", "Hash", "Path", "Size", "Status", "Reason"])
         .map_err(|e| e.to_string())?;
     for (i, group) in report.groups.iter().enumerate() {
         let hash = hex::encode(group.hash);
         wtr.write_record([
             &(i + 1).to_string(),
-            "keep",
+            &hash,
             &group.keep.entry.path.display().to_string(),
             &group.size.to_string(),
-            &hash,
+            "keep",
+            &format!("{}", group.keep.reason),
         ])
         .map_err(|e| e.to_string())?;
         for dup in &group.duplicates {
             wtr.write_record([
                 &(i + 1).to_string(),
-                "duplicate",
+                &hash,
                 &dup.entry.path.display().to_string(),
                 &group.size.to_string(),
-                &hash,
+                "duplicate",
+                &format!("{}", dup.reason),
             ])
             .map_err(|e| e.to_string())?;
         }
     }
     String::from_utf8(wtr.into_inner().map_err(|e| e.to_string())?)
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn dry_run(state: State<'_, AppState>) -> Result<DryRunPlan, String> {
+    let report = state.report.lock().unwrap();
+    let report = report.as_ref().ok_or("no results")?;
+    let plan = duplff_core::actions::dry_run(&report.groups);
+    Ok(DryRunPlan {
+        files_to_delete: plan
+            .files_to_delete
+            .iter()
+            .map(|p| p.display().to_string())
+            .collect(),
+        bytes_to_reclaim: plan.bytes_to_reclaim,
+        group_count: report.groups.len(),
+    })
+}
+
+#[tauri::command]
+pub fn list_action_logs() -> Result<Vec<ActionLogSummary>, String> {
+    let paths = duplff_core::log_store::list_logs().map_err(|e| e.to_string())?;
+    let mut summaries = Vec::new();
+    for path in paths {
+        if let Ok(log) = duplff_core::log_store::load_log(&path) {
+            summaries.push(ActionLogSummary {
+                timestamp: log.timestamp.clone(),
+                file_count: log.actions.len(),
+                bytes_reclaimed: log.bytes_reclaimed,
+            });
+        }
+    }
+    Ok(summaries)
+}
+
+#[tauri::command]
+pub fn undo_log(timestamp: String) -> Result<UndoResult, String> {
+    let paths = duplff_core::log_store::list_logs().map_err(|e| e.to_string())?;
+    for path in paths {
+        if let Ok(log) = duplff_core::log_store::load_log(&path) {
+            if log.timestamp == timestamp {
+                let result = duplff_core::actions::undo(&log).map_err(|e| e.to_string())?;
+                return Ok(UndoResult {
+                    restored: result.restored.len(),
+                    not_found: result.not_found.len(),
+                });
+            }
+        }
+    }
+    Err("log not found".into())
 }
 
 #[tauri::command]
