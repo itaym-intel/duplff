@@ -1,11 +1,23 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
 @import "tailwindcss";
 
 @theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
   --color-keep: oklch(0.723 0.191 142.5);
   --color-delete: oklch(0.637 0.237 25.3);
   --color-warn: oklch(0.795 0.184 86.0);
   --color-info: oklch(0.551 0.014 264.5);
   --color-active: oklch(0.715 0.143 215.2);
+  --color-surface: oklch(0.21 0.006 264.5);
+  --color-surface-hover: oklch(0.24 0.006 264.5);
+  --color-border: oklch(0.30 0.006 264.5);
+  --color-border-subtle: oklch(0.26 0.006 264.5);
+  --color-text-primary: oklch(0.93 0.006 264.5);
+  --color-text-secondary: oklch(0.65 0.006 264.5);
+  --color-text-muted: oklch(0.45 0.006 264.5);
 }
 
 * {
@@ -13,7 +25,7 @@
 }
 
 body {
-  @apply bg-gray-900 text-gray-100 font-sans;
+  @apply bg-gray-950 text-text-primary font-sans;
   margin: 0;
   padding: 0;
 }
@@ -25,9 +37,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
 }
