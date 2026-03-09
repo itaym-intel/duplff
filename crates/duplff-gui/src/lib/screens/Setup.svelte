@@ -45,7 +45,7 @@
   <div class="w-full max-w-lg">
     <!-- Header -->
     <div class="mb-10 flex justify-center">
-      <img src="/logo.svg" alt="duplff" class="w-12 h-12" />
+      <img src="/logo.svg" alt="duplff" class="w-20 h-20" />
     </div>
 
     <div class="space-y-5">
