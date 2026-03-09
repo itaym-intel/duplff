@@ -133,10 +133,10 @@
         <button
           onclick={handleScan}
           disabled={roots.length === 0}
-          class="text-sm font-medium transition-colors duration-200
+          class="text-sm font-medium transition-all duration-200
             {roots.length > 0
-              ? 'text-keep hover:text-keep/80 cursor-pointer'
-              : 'text-text-muted cursor-not-allowed'}"
+              ? 'text-text-muted cursor-pointer hover:text-text-secondary animate-[bounce-in_300ms_ease-out]'
+              : 'text-text-muted/80 cursor-not-allowed'}"
         >
           Scan
         </button>
@@ -149,6 +149,12 @@
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes bounce-in {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.15); }
+    70% { transform: scale(0.95); }
+    100% { transform: scale(1); }
   }
 
 </style>
