@@ -153,12 +153,7 @@
   }
 
   .scan-btn--active {
-    background: linear-gradient(
-      180deg,
-      oklch(0.50 0.13 130.7) 0%,
-      oklch(0.447 0.122 130.7) 50%,
-      oklch(0.40 0.11 130.7) 100%
-    );
+    background: oklch(0.447 0.122 130.7);
   }
   .scan-btn--active:hover {
     transform: translateY(-2px);
