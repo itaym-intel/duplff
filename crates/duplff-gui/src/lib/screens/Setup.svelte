@@ -133,11 +133,10 @@
         <button
           onclick={handleScan}
           disabled={roots.length === 0}
-          class="scan-btn px-10 py-3.5 rounded-2xl text-sm font-semibold
-            tracking-wide uppercase transition-all duration-300 ease-out
+          class="text-sm font-medium transition-colors duration-200
             {roots.length > 0
-              ? 'scan-btn--active text-white'
-              : 'bg-surface/60 text-text-muted border border-dashed border-border cursor-not-allowed'}"
+              ? 'text-keep hover:text-keep/80 cursor-pointer'
+              : 'text-text-muted cursor-not-allowed'}"
         >
           Scan
         </button>
@@ -152,13 +151,4 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .scan-btn--active {
-    background: oklch(0.447 0.122 130.7);
-  }
-  .scan-btn--active:hover {
-    transform: translateY(-2px);
-  }
-  .scan-btn--active:active {
-    transform: translateY(0px) scale(0.98);
-  }
 </style>
