@@ -75,7 +75,7 @@
 </script>
 
 <div class="mt-2 rounded-xl border border-border-subtle overflow-hidden animate-[fadeIn_150ms_ease-out]"
-  style="background: oklch(0.13 0.005 264.5);">
+  style="background: oklch(0.14 0.005 264.5);">
   {#if error}
     <p class="text-text-muted text-xs p-4">{error}</p>
   {:else if content === null}

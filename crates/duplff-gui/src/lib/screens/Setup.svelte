@@ -140,7 +140,7 @@
             {roots.length > 0
               ? 'text-white shadow-lg hover:brightness-110 active:scale-[0.99]'
               : 'bg-surface text-text-muted border border-border cursor-not-allowed'}"
-          style={roots.length > 0 ? 'background: oklch(0.45 0.12 155); box-shadow: 0 10px 15px -3px oklch(0.45 0.12 155 / 0.2);' : ''}
+          style={roots.length > 0 ? 'background: oklch(0.447 0.122 130.7); box-shadow: 0 10px 15px -3px oklch(0.447 0.122 130.7 / 0.25);' : ''}
         >
           Scan
         </button>

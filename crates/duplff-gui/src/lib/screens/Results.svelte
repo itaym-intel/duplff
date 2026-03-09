@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { report, markedFiles, filterText, sortMode, ignoredGroups } from '$lib/stores';
+  import { report, markedFiles, filterText, sortMode, ignoredGroups, keepOverrides } from '$lib/stores';
   import { trashFiles, exportJson, exportCsv, undoLast, getResults } from '$lib/api';
   import { formatBytes } from '$lib/format';
   import StatsBar from '$lib/components/StatsBar.svelte';
@@ -59,6 +59,7 @@
       const result = await trashFiles(paths);
       showToast(`Trashed ${result.count} files (${formatBytes(result.bytes_reclaimed)})`);
       markedFiles.set(new Set());
+      keepOverrides.set(new Map());
       const updated = await getResults();
       if (updated) report.set(updated);
     } catch (e) {
@@ -70,6 +71,7 @@
     try {
       const result = await undoLast();
       showToast(`Restored ${result.restored} files`);
+      keepOverrides.set(new Map());
       const updated = await getResults();
       if (updated) report.set(updated);
     } catch (e) {
