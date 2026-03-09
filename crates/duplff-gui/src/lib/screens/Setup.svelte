@@ -44,11 +44,8 @@
 <div class="flex items-center justify-center min-h-screen p-8">
   <div class="w-full max-w-lg">
     <!-- Header -->
-    <div class="mb-10">
-      <div class="flex items-center gap-3">
-        <img src="/logo.svg" alt="duplff" class="w-8 h-8" />
-        <h1 class="text-xl font-semibold tracking-tight">duplff</h1>
-      </div>
+    <div class="mb-10 flex justify-center">
+      <img src="/logo.svg" alt="duplff" class="w-12 h-12" />
     </div>
 
     <div class="space-y-5">
@@ -114,17 +111,17 @@
           <div class="space-y-3">
             <label class="flex items-center gap-3 text-sm text-text-secondary cursor-pointer group">
               <input type="checkbox" bind:checked={followSymlinks}
-                class="w-4 h-4 rounded accent-active cursor-pointer" />
+                class="cursor-pointer" />
               <span class="group-hover:text-text-primary transition-colors">Follow symlinks</span>
             </label>
             <label class="flex items-center gap-3 text-sm text-text-secondary cursor-pointer group">
               <input type="checkbox" bind:checked={paranoid}
-                class="w-4 h-4 rounded accent-active cursor-pointer" />
+                class="cursor-pointer" />
               <span class="group-hover:text-text-primary transition-colors">Byte-by-byte verification</span>
             </label>
             <label class="flex items-center gap-3 text-sm text-text-secondary cursor-pointer group">
               <input type="checkbox" bind:checked={noCache}
-                class="w-4 h-4 rounded accent-active cursor-pointer" />
+                class="cursor-pointer" />
               <span class="group-hover:text-text-primary transition-colors">Disable hash cache</span>
             </label>
           </div>

@@ -27,9 +27,70 @@
 
 body {
   @apply text-text-primary font-sans antialiased;
-  background: oklch(0.559 0.010 337.6);
+  background: oklch(0.503 0.009 337.6);
   margin: 0;
   padding: 0;
+}
+
+/* Custom checkbox */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid oklch(0.35 0.005 264.5);
+  border-radius: 4px;
+  background: oklch(0.175 0.005 264.5);
+  cursor: pointer;
+  position: relative;
+  transition: all 150ms ease;
+  flex-shrink: 0;
+}
+input[type="checkbox"]:hover {
+  border-color: oklch(0.45 0.005 264.5);
+}
+input[type="checkbox"]:checked {
+  background: oklch(0.650 0.170 230.0);
+  border-color: oklch(0.650 0.170 230.0);
+}
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px oklch(0.650 0.170 230.0 / 0.3);
+}
+
+/* Custom select */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px !important;
+}
+select option {
+  background: oklch(0.175 0.005 264.5);
+  color: oklch(0.92 0.005 264.5);
+}
+
+/* Custom number input — hide native spinners */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 ::-webkit-scrollbar {

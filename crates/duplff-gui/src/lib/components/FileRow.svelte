@@ -43,7 +43,7 @@
       type="checkbox"
       checked={isMarked}
       onchange={onToggle}
-      class="w-4 h-4 rounded accent-active shrink-0 cursor-pointer"
+      class="cursor-pointer"
     />
   {:else}
     <div class="w-4 h-4 rounded-full bg-keep/20 flex items-center justify-center shrink-0">
