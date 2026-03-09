@@ -71,7 +71,7 @@ export function defaultConfig(): ScanConfig {
   return {
     roots: [],
     extensions: null,
-    min_size: 1024,
+    min_size: 1,
     max_size: null,
     priority_paths: [],
     follow_symlinks: false,

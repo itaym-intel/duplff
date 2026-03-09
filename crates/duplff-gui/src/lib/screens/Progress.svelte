@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentScreen, report, scanConfig } from '$lib/stores';
+  import { currentScreen, report, scanConfig, ignoredGroups, keepOverrides, markedFiles, expandedGroups, focusedGroup, filterText } from '$lib/stores';
   import { startScan, onScanProgress, onHashProgress, onScanComplete, onScanError } from '$lib/api';
   import { get } from 'svelte/store';
   import type { UnlistenFn } from '@tauri-apps/api/event';
@@ -15,6 +15,14 @@
     let timer: ReturnType<typeof setInterval>;
     let unlisteners: UnlistenFn[] = [];
     let cancelled = false;
+
+    // Reset all results state for fresh scan
+    ignoredGroups.set(new Set());
+    keepOverrides.set(new Map());
+    markedFiles.set(new Set());
+    expandedGroups.set(new Set());
+    focusedGroup.set(0);
+    filterText.set('');
 
     const startTime = Date.now();
     timer = setInterval(() => {

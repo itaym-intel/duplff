@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { DuplicateGroup } from '$lib/types';
+  import type { DuplicateGroup, RankedFile } from '$lib/types';
   import { formatBytes, truncatePath, confidenceLevel, fileName } from '$lib/format';
-  import { markedFiles } from '$lib/stores';
+  import { markedFiles, keepOverrides } from '$lib/stores';
   import RecommendationBadge from './RecommendationBadge.svelte';
   import FileRow from './FileRow.svelte';
   import FilePreview from './FilePreview.svelte';
@@ -11,21 +11,43 @@
     index,
     expanded = false,
     focused = false,
+    ignored = false,
     onToggleExpand,
     onIgnore,
+    onUnignore,
   }: {
     group: DuplicateGroup;
     index: number;
     expanded?: boolean;
     focused?: boolean;
+    ignored?: boolean;
     onToggleExpand: () => void;
     onIgnore?: () => void;
+    onUnignore?: () => void;
   } = $props();
 
   let previewPath = $state<string | null>(null);
-  let wasted = $derived(group.size * group.duplicates.length);
+  let keepDropHover = $state(false);
+  let removeDropHover = $state(false);
+
+  // Compute effective keep/duplicates based on user overrides
+  let allFiles = $derived([group.keep, ...group.duplicates]);
+
+  let effectiveKeep = $derived.by((): RankedFile => {
+    const overridePath = $keepOverrides.get(index);
+    if (!overridePath) return group.keep;
+    const found = allFiles.find(f => f.entry.path === overridePath);
+    return found ?? group.keep;
+  });
+
+  let effectiveDuplicates = $derived.by((): RankedFile[] => {
+    const keepPath = effectiveKeep.entry.path;
+    return allFiles.filter(f => f.entry.path !== keepPath);
+  });
+
+  let wasted = $derived(group.size * effectiveDuplicates.length);
   let confidence = $derived(confidenceLevel(group));
-  let allDupPaths = $derived(group.duplicates.map(d => d.entry.path));
+  let allDupPaths = $derived(effectiveDuplicates.map(d => d.entry.path));
   let markedCount = $derived(
     allDupPaths.filter(p => $markedFiles.has(p)).length
   );
@@ -50,11 +72,82 @@
   function togglePreview(path: string) {
     previewPath = previewPath === path ? null : path;
   }
+
+  // Drag and drop handlers
+  function handleDragStart(e: DragEvent, path: string) {
+    if (e.dataTransfer) {
+      e.dataTransfer.setData('text/plain', path);
+      e.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  function handleKeepDragOver(e: DragEvent) {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    keepDropHover = true;
+  }
+
+  function handleKeepDragLeave() {
+    keepDropHover = false;
+  }
+
+  function handleKeepDrop(e: DragEvent) {
+    e.preventDefault();
+    keepDropHover = false;
+    const path = e.dataTransfer?.getData('text/plain');
+    if (!path || path === effectiveKeep.entry.path) return;
+
+    // Remove the promoted file from markedFiles if it was there
+    markedFiles.update(set => {
+      const next = new Set(set);
+      next.delete(path);
+      return next;
+    });
+
+    keepOverrides.update(map => {
+      const next = new Map(map);
+      next.set(index, path);
+      return next;
+    });
+  }
+
+  function handleRemoveDragOver(e: DragEvent) {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    removeDropHover = true;
+  }
+
+  function handleRemoveDragLeave() {
+    removeDropHover = false;
+  }
+
+  function handleRemoveDrop(e: DragEvent) {
+    e.preventDefault();
+    removeDropHover = false;
+    const path = e.dataTransfer?.getData('text/plain');
+    if (!path || path !== effectiveKeep.entry.path) return;
+
+    // Dropping keep file into remove zone — pick first duplicate as new keep
+    const firstDup = effectiveDuplicates[0];
+    if (firstDup) {
+      markedFiles.update(set => {
+        const next = new Set(set);
+        next.delete(firstDup.entry.path);
+        return next;
+      });
+      keepOverrides.update(map => {
+        const next = new Map(map);
+        next.set(index, firstDup.entry.path);
+        return next;
+      });
+    }
+  }
 </script>
 
 <div
   class="rounded-xl border transition-all duration-200
-    {focused ? 'border-active/40 ring-1 ring-active/15 shadow-lg shadow-active/5' : 'border-border-subtle hover:border-border'}
+    {ignored ? 'opacity-40' : ''}
+    {focused && !ignored ? 'border-active/40 ring-1 ring-active/15 shadow-lg shadow-active/5' : 'border-border-subtle hover:border-border'}
     {expanded ? 'bg-surface' : 'bg-surface/40 hover:bg-surface/70'}"
   role="button"
   tabindex="-1"
@@ -69,15 +162,18 @@
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2.5">
         <span class="font-mono text-sm text-text-primary truncate">
-          {fileName(group.keep.entry.path)}
+          {fileName(effectiveKeep.entry.path)}
         </span>
         <span class="text-[11px] text-text-muted bg-surface-raised px-2 py-0.5 rounded-md font-mono">
-          {group.duplicates.length + 1}
+          {effectiveDuplicates.length + 1}
         </span>
+        {#if ignored}
+          <span class="text-[10px] text-text-muted bg-surface-raised px-2 py-0.5 rounded-md uppercase tracking-wider">Ignored</span>
+        {/if}
       </div>
       {#if !expanded}
         <p class="font-mono text-xs text-text-muted truncate mt-1">
-          {truncatePath(group.keep.entry.path, 80)}
+          {truncatePath(effectiveKeep.entry.path, 80)}
         </p>
       {/if}
     </div>
@@ -91,35 +187,51 @@
   <!-- Expanded Content -->
   {#if expanded}
     <div class="px-4 pb-4 space-y-4 border-t border-border-subtle animate-[expandIn_150ms_ease-out]">
-      <!-- Keep file -->
-      <div class="pt-4">
+      <!-- Keep file (drop zone) -->
+      <div class="pt-4"
+        ondragover={handleKeepDragOver}
+        ondragleave={handleKeepDragLeave}
+        ondrop={handleKeepDrop}
+        role="region"
+      >
         <div class="flex items-center gap-2 mb-2">
           <div class="w-1.5 h-1.5 rounded-full bg-keep"></div>
           <span class="text-[11px] font-medium text-keep uppercase tracking-widest">Keep</span>
+          <span class="text-[10px] text-text-muted ml-1">— drag here to keep</span>
         </div>
-        <FileRow
-          file={group.keep}
-          isKeep={true}
-          onPreview={() => togglePreview(group.keep.entry.path)}
-        />
+        <div class="rounded-lg transition-colors {keepDropHover ? 'bg-keep/10 ring-1 ring-keep/30' : ''}">
+          <FileRow
+            file={effectiveKeep}
+            isKeep={true}
+            draggable={true}
+            onDragStart={(e) => handleDragStart(e, effectiveKeep.entry.path)}
+            onPreview={() => togglePreview(effectiveKeep.entry.path)}
+          />
+        </div>
         <div class="ml-8 mt-2">
-          <RecommendationBadge reason={group.keep.reason} {confidence} />
+          <RecommendationBadge reason={effectiveKeep.reason} {confidence} />
         </div>
-        {#if previewPath === group.keep.entry.path}
+        {#if previewPath === effectiveKeep.entry.path}
           <div class="ml-8 mt-2">
-            <FilePreview path={group.keep.entry.path} />
+            <FilePreview path={effectiveKeep.entry.path} />
           </div>
         {/if}
       </div>
 
-      <!-- Duplicates -->
-      <div>
+      <!-- Duplicates (drop zone) -->
+      <div
+        ondragover={handleRemoveDragOver}
+        ondragleave={handleRemoveDragLeave}
+        ondrop={handleRemoveDrop}
+        role="region"
+      >
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
             <div class="w-1.5 h-1.5 rounded-full bg-delete/60"></div>
             <span class="text-[11px] font-medium text-text-muted uppercase tracking-widest">
-              {group.duplicates.length === 1 ? '1 copy' : `${group.duplicates.length} copies`}
+              {effectiveDuplicates.length === 1 ? '1 copy' : `${effectiveDuplicates.length} copies`}
             </span>
+            <span class="text-[10px] text-text-muted ml-1">— drag here to remove</span>
           </div>
           <button
             onclick={selectAllDuplicates}
@@ -128,11 +240,13 @@
             Select all
           </button>
         </div>
-        <div class="space-y-0.5">
-          {#each group.duplicates as dup}
+        <div class="space-y-0.5 rounded-lg transition-colors {removeDropHover ? 'bg-delete/5 ring-1 ring-delete/20' : ''}">
+          {#each effectiveDuplicates as dup}
             <FileRow
               file={dup}
               isMarked={$markedFiles.has(dup.entry.path)}
+              draggable={true}
+              onDragStart={(e) => handleDragStart(e, dup.entry.path)}
               onToggle={() => toggleFile(dup.entry.path)}
               onPreview={() => togglePreview(dup.entry.path)}
             />
@@ -160,7 +274,15 @@
             Select copies
           </button>
         {/if}
-        {#if onIgnore}
+        {#if ignored && onUnignore}
+          <button
+            onclick={onUnignore}
+            class="text-[11px] text-active/80 hover:text-active bg-active/6 hover:bg-active/10
+              px-3 py-1.5 rounded-lg transition-colors font-medium uppercase tracking-wider"
+          >
+            Unignore
+          </button>
+        {:else if onIgnore}
           <button
             onclick={onIgnore}
             class="text-[11px] text-text-muted hover:text-text-secondary px-3 py-1.5 rounded-lg

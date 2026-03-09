@@ -7,29 +7,36 @@
     file,
     isKeep = false,
     isMarked = false,
+    draggable = false,
     onToggle,
     onPreview,
+    onDragStart,
   }: {
     file: RankedFile;
     isKeep?: boolean;
     isMarked?: boolean;
+    draggable?: boolean;
     onToggle?: () => void;
     onPreview?: () => void;
+    onDragStart?: (e: DragEvent) => void;
   } = $props();
 
   let hovered = $state(false);
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group
+    {draggable ? 'cursor-grab active:cursor-grabbing' : ''}
     {isKeep
       ? 'border-l-2 border-keep/60 bg-keep/5 hover:bg-keep/8'
       : isMarked
         ? 'border-l-2 border-delete/40 bg-delete/5 hover:bg-delete/8'
         : 'border-l-2 border-transparent hover:bg-surface-hover'}"
+  draggable={draggable ? 'true' : undefined}
+  ondragstart={onDragStart}
   onmouseenter={() => hovered = true}
   onmouseleave={() => hovered = false}
-  role="row"
 >
   {#if !isKeep && onToggle}
     <input
@@ -52,6 +59,10 @@
       {dirName(file.entry.path)}
     </p>
   </div>
+
+  {#if draggable}
+    <span class="text-text-muted/40 text-xs shrink-0 select-none" title="Drag to reorder">⠿</span>
+  {/if}
 
   <div class="flex items-center gap-1 shrink-0 transition-opacity duration-150 {hovered ? 'opacity-100' : 'opacity-0'}">
     {#if onPreview}

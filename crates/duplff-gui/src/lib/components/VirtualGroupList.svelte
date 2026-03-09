@@ -90,6 +90,14 @@
     });
   }
 
+  function unignoreGroup(index: number) {
+    ignoredGroups.update(set => {
+      const next = new Set(set);
+      next.delete(index);
+      return next;
+    });
+  }
+
   $effect(() => {
     if (container) {
       containerHeight = container.clientHeight;
@@ -110,8 +118,10 @@
           {index}
           expanded={$expandedGroups.has(index)}
           focused={$focusedGroup === index}
+          ignored={$ignoredGroups.has(index)}
           onToggleExpand={() => toggleExpand(index)}
           onIgnore={() => ignoreGroup(index)}
+          onUnignore={() => unignoreGroup(index)}
         />
       {/each}
     </div>

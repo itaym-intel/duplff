@@ -19,11 +19,9 @@
 
   let filteredGroups = $derived.by(() => {
     const text = $filterText.toLowerCase();
-    const ignored = $ignoredGroups;
     return groups
       .map((g, i) => ({ group: g, index: i }))
-      .filter(({ group, index }) => {
-        if (ignored.has(index)) return false;
+      .filter(({ group }) => {
         if (!text) return true;
         return group.keep.entry.path.toLowerCase().includes(text) ||
           group.duplicates.some(d => d.entry.path.toLowerCase().includes(text));
