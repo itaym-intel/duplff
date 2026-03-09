@@ -3,7 +3,6 @@
   import Setup from '$lib/screens/Setup.svelte';
   import Progress from '$lib/screens/Progress.svelte';
   import Results from '$lib/screens/Results.svelte';
-  import Detail from '$lib/screens/Detail.svelte';
 </script>
 
 <main class="min-h-screen">
@@ -13,7 +12,5 @@
     <Progress />
   {:else if $currentScreen === 'results'}
     <Results />
-  {:else if $currentScreen === 'detail'}
-    <Detail />
   {/if}
 </main>
