@@ -133,18 +133,13 @@
         <button
           onclick={handleScan}
           disabled={roots.length === 0}
-          class="scan-btn group relative flex items-center gap-3 px-10 py-3.5 rounded-2xl text-sm font-semibold
+          class="scan-btn px-10 py-3.5 rounded-2xl text-sm font-semibold
             tracking-wide uppercase transition-all duration-300 ease-out
             {roots.length > 0
               ? 'scan-btn--active text-white'
               : 'bg-surface/60 text-text-muted border border-dashed border-border cursor-not-allowed'}"
         >
-          {#if roots.length > 0}
-            <span class="relative z-10">Scan</span>
-            <span class="relative z-10 transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>
-          {:else}
-            <span>Scan</span>
-          {/if}
+          Scan
         </button>
       </div>
     </div>
@@ -164,22 +159,11 @@
       oklch(0.447 0.122 130.7) 50%,
       oklch(0.40 0.11 130.7) 100%
     );
-    box-shadow:
-      0 1px 0 0 oklch(0.55 0.10 130.7 / 0.3) inset,
-      0 8px 20px -4px oklch(0.447 0.122 130.7 / 0.35),
-      0 2px 6px -1px oklch(0.447 0.122 130.7 / 0.2);
   }
   .scan-btn--active:hover {
     transform: translateY(-2px);
-    box-shadow:
-      0 1px 0 0 oklch(0.55 0.10 130.7 / 0.4) inset,
-      0 14px 28px -4px oklch(0.447 0.122 130.7 / 0.4),
-      0 4px 10px -2px oklch(0.447 0.122 130.7 / 0.25);
   }
   .scan-btn--active:active {
     transform: translateY(0px) scale(0.98);
-    box-shadow:
-      0 1px 0 0 oklch(0.55 0.10 130.7 / 0.2) inset,
-      0 4px 8px -2px oklch(0.447 0.122 130.7 / 0.3);
   }
 </style>
