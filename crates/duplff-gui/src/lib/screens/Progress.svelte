@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { currentScreen, report } from '$lib/stores';
-  import { onScanProgress, onHashProgress, onScanComplete, onScanError } from '$lib/api';
+  import { currentScreen, report, scanConfig } from '$lib/stores';
+  import { startScan, onScanProgress, onHashProgress, onScanComplete, onScanError } from '$lib/api';
+  import { get } from 'svelte/store';
   import type { UnlistenFn } from '@tauri-apps/api/event';
 
   let phase: 'scanning' | 'hashing' = $state('scanning');
@@ -9,32 +10,44 @@
   let hashTotal = $state(0);
   let elapsed = $state(0);
   let error: string | null = $state(null);
-  let timer: ReturnType<typeof setInterval>;
-  let unlisteners: UnlistenFn[] = [];
 
   $effect(() => {
+    let timer: ReturnType<typeof setInterval>;
+    let unlisteners: UnlistenFn[] = [];
+    let cancelled = false;
+
     const startTime = Date.now();
     timer = setInterval(() => {
       elapsed = Math.floor((Date.now() - startTime) / 1000);
     }, 1000);
 
+    // Register listeners first, then start scan to avoid race condition
     (async () => {
       unlisteners.push(
-        await onScanProgress((count) => { filesFound = count; }),
+        await onScanProgress((count) => { if (!cancelled) filesFound = count; }),
         await onHashProgress((progress) => {
+          if (cancelled) return;
           phase = 'hashing';
           hashDone = progress.done;
           hashTotal = progress.total;
         }),
         await onScanComplete((r) => {
+          if (cancelled) return;
           report.set(r);
           currentScreen.set('results');
         }),
-        await onScanError((msg) => { error = msg; }),
+        await onScanError((msg) => { if (!cancelled) error = msg; }),
       );
+
+      // Now that listeners are registered, start the scan
+      if (!cancelled) {
+        const config = get(scanConfig);
+        await startScan(config);
+      }
     })();
 
     return () => {
+      cancelled = true;
       clearInterval(timer);
       unlisteners.forEach(fn => fn());
     };

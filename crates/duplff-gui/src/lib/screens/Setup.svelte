@@ -1,6 +1,5 @@
 <script lang="ts">
   import { scanConfig, currentScreen } from '$lib/stores';
-  import { startScan } from '$lib/api';
   import FolderPicker from '$lib/components/FolderPicker.svelte';
 
   let roots: string[] = $state([]);
@@ -20,7 +19,7 @@
     return minSize * multipliers[minSizeUnit];
   }
 
-  async function handleScan() {
+  function handleScan() {
     if (roots.length === 0) return;
     const config = {
       roots,
@@ -39,7 +38,6 @@
     };
     scanConfig.set(config);
     currentScreen.set('progress');
-    await startScan(config);
   }
 </script>
 
