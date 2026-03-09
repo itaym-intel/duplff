@@ -21,8 +21,12 @@
 </script>
 
 <div
-  class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group
-    {isKeep ? 'border-l-2 border-keep bg-keep/5' : 'border-l-2 border-transparent hover:bg-surface-hover'}"
+  class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group
+    {isKeep
+      ? 'border-l-2 border-keep/60 bg-keep/5 hover:bg-keep/8'
+      : isMarked
+        ? 'border-l-2 border-delete/40 bg-delete/5 hover:bg-delete/8'
+        : 'border-l-2 border-transparent hover:bg-surface-hover'}"
   onmouseenter={() => hovered = true}
   onmouseleave={() => hovered = false}
   role="row"
@@ -35,25 +39,26 @@
       class="w-4 h-4 rounded accent-active shrink-0 cursor-pointer"
     />
   {:else}
-    <span class="w-4 text-keep text-xs font-bold shrink-0" title="Recommended to keep">*</span>
+    <div class="w-4 h-4 rounded-full bg-keep/20 flex items-center justify-center shrink-0">
+      <div class="w-1.5 h-1.5 rounded-full bg-keep"></div>
+    </div>
   {/if}
 
   <div class="flex-1 min-w-0">
-    <div class="flex items-baseline gap-2">
-      <span class="font-mono text-sm {isKeep ? 'text-text-primary font-medium' : 'text-text-secondary'} truncate">
-        {fileName(file.entry.path)}
-      </span>
-    </div>
-    <p class="font-mono text-xs text-text-muted truncate mt-0.5" title={file.entry.path}>
+    <span class="font-mono text-sm {isKeep ? 'text-text-primary' : 'text-text-secondary'} truncate block">
+      {fileName(file.entry.path)}
+    </span>
+    <p class="font-mono text-[11px] text-text-muted truncate mt-0.5" title={file.entry.path}>
       {dirName(file.entry.path)}
     </p>
   </div>
 
-  <div class="flex items-center gap-1.5 shrink-0 transition-opacity {hovered ? 'opacity-100' : 'opacity-0'}">
+  <div class="flex items-center gap-1 shrink-0 transition-opacity duration-150 {hovered ? 'opacity-100' : 'opacity-0'}">
     {#if onPreview}
       <button
         onclick={onPreview}
-        class="text-xs text-text-muted hover:text-text-secondary px-1.5 py-0.5 rounded transition-colors"
+        class="text-[11px] text-text-muted hover:text-active px-2 py-1 rounded-md
+          hover:bg-active/10 transition-colors font-medium"
         title="Preview file"
       >
         Preview
@@ -61,7 +66,8 @@
     {/if}
     <button
       onclick={() => openInFileManager(file.entry.path)}
-      class="text-xs text-text-muted hover:text-text-secondary px-1.5 py-0.5 rounded transition-colors"
+      class="text-[11px] text-text-muted hover:text-text-secondary px-2 py-1 rounded-md
+        hover:bg-surface-hover transition-colors font-medium"
       title="Open in file manager"
     >
       Reveal

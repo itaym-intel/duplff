@@ -103,7 +103,7 @@
   class="flex-1 overflow-auto"
 >
   <div style="height: {totalHeight}px; position: relative;">
-    <div style="transform: translateY({offsetTop}px);" class="space-y-2 px-4 py-2">
+    <div style="transform: translateY({offsetTop}px);" class="space-y-2.5 px-5 py-3">
       {#each visibleItems as { group, index } (index)}
         <GroupCard
           {group}

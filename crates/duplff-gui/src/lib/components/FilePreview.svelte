@@ -74,14 +74,25 @@
   });
 </script>
 
-<div class="mt-2 rounded-lg bg-gray-950 border border-border-subtle overflow-hidden">
+<div class="mt-2 rounded-xl border border-border-subtle overflow-hidden animate-[fadeIn_150ms_ease-out]"
+  style="background: oklch(0.13 0.005 264.5);">
   {#if error}
-    <p class="text-text-muted text-xs p-3">{error}</p>
+    <p class="text-text-muted text-xs p-4">{error}</p>
   {:else if content === null}
-    <p class="text-text-muted text-xs p-3">Loading...</p>
+    <div class="flex items-center gap-2 p-4">
+      <div class="w-3 h-3 rounded-full border-2 border-active/30 border-t-active animate-spin"></div>
+      <span class="text-text-muted text-xs">Loading preview...</span>
+    </div>
   {:else if highlighted}
-    <pre class="p-3 text-xs font-mono leading-relaxed overflow-x-auto max-h-80"><code>{@html highlighted}</code></pre>
+    <pre class="p-4 text-xs font-mono leading-relaxed overflow-x-auto max-h-80"><code>{@html highlighted}</code></pre>
   {:else}
-    <pre class="p-3 text-xs font-mono text-text-secondary leading-relaxed overflow-x-auto max-h-80">{content}</pre>
+    <pre class="p-4 text-xs font-mono text-text-secondary leading-relaxed overflow-x-auto max-h-80">{content}</pre>
   {/if}
 </div>
+
+<style>
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+</style>
