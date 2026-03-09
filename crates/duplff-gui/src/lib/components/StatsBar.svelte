@@ -31,9 +31,7 @@
   <!-- Stats row -->
   <div class="flex items-center gap-5 text-sm">
     <div class="flex items-center gap-2">
-      <div class="w-6 h-6 rounded-md bg-active/15 flex items-center justify-center">
-        <span class="text-active text-[10px] font-bold font-mono">d</span>
-      </div>
+      <img src="/logo.svg" alt="duplff" class="w-6 h-6" />
       <span class="text-xs font-medium text-text-muted uppercase tracking-widest">Results</span>
     </div>
 

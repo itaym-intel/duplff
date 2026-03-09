@@ -46,9 +46,7 @@
     <!-- Header -->
     <div class="mb-10">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-active/15 flex items-center justify-center">
-          <span class="text-active text-sm font-bold font-mono">d</span>
-        </div>
+        <img src="/logo.svg" alt="duplff" class="w-8 h-8" />
         <h1 class="text-xl font-semibold tracking-tight">duplff</h1>
       </div>
     </div>
