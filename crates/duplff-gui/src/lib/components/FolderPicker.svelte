@@ -43,7 +43,7 @@
   {/if}
   <button
     class="w-full border border-dashed border-border rounded-xl py-5 text-sm text-text-muted
-      hover:border-keep/40 hover:text-keep hover:bg-keep/5 transition-all"
+      hover:border-keep/40 hover:bg-keep/5 transition-all"
     onclick={addFolder}
   >
     + Add folder
