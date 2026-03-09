@@ -129,14 +129,15 @@
       {/if}
 
       <!-- Scan button -->
-      <div class="pt-2">
+      <div class="pt-4 flex justify-center">
         <button
           onclick={handleScan}
           disabled={roots.length === 0}
-          class="w-full border border-dashed rounded-xl py-5 text-sm text-text-muted transition-all
+          class="scan-btn px-10 py-3.5 rounded-2xl text-sm font-semibold
+            tracking-wide uppercase transition-all duration-300 ease-out
             {roots.length > 0
-              ? 'border-keep/40 hover:border-keep/60 hover:bg-keep/5 cursor-pointer'
-              : 'border-border cursor-not-allowed'}"
+              ? 'scan-btn--active text-white'
+              : 'bg-surface/60 text-text-muted border border-dashed border-border cursor-not-allowed'}"
         >
           Scan
         </button>
@@ -151,4 +152,13 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
+  .scan-btn--active {
+    background: oklch(0.447 0.122 130.7);
+  }
+  .scan-btn--active:hover {
+    transform: translateY(-2px);
+  }
+  .scan-btn--active:active {
+    transform: translateY(0px) scale(0.98);
+  }
 </style>
