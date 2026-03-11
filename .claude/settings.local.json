@@ -38,7 +38,11 @@
       "Bash(export:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(npx tauri:*)",
+      "Bash(cd /home/itay/GitHub/duplff/crates/duplff-gui && npm install --package-lock-only 2>&1)",
+      "Bash(export PATH=\"$HOME/.cargo/bin:$PATH\" && cargo test --workspace 2>&1)",
+      "Bash(export PATH=\"$HOME/.cargo/bin:$PATH\" && cargo clippy --workspace -- -D warnings 2>&1)"
     ]
   }
 }

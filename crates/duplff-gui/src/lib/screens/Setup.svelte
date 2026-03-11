@@ -44,8 +44,8 @@
 <div class="flex items-center justify-center min-h-screen p-8">
   <div class="w-full max-w-lg">
     <!-- Header -->
-    <div class="mb-10 flex justify-center">
-      <img src="/logo.svg" alt="duplff" class="w-20 h-20" />
+    <div class="mt-0 mb-10 flex justify-center">
+      <img src="/logo.svg" alt="duplff" class="w-60 h-30" />
     </div>
 
     <div class="space-y-5">
@@ -57,8 +57,8 @@
         onclick={() => showAdvanced = !showAdvanced}
         class="flex items-center gap-2.5 text-sm text-text-muted hover:text-text-secondary transition-colors py-1"
       >
-        <span class="text-[10px] transition-transform duration-150 {showAdvanced ? 'rotate-90' : ''}">&#9654;</span>
-        Advanced options
+        <span class="text-[10px] mb-1 transition-transform duration-150 {showAdvanced ? 'rotate-90' : ''}">&#9654;</span>
+        Advanced
       </button>
 
       {#if showAdvanced}

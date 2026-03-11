@@ -44,11 +44,11 @@ This runs the SvelteKit dev server on port 1420 and opens the Tauri window with 
 1. All tests pass: `cargo test --workspace`
 2. Clippy clean: `cargo clippy --workspace -- -D warnings`
 3. Frontend builds: `cd crates/duplff-gui && npm run build`
-4. Version numbers updated if needed:
+4. **Version numbers updated in ALL 5 files** (miss one and bundle filenames will be wrong):
    - `crates/duplff-core/Cargo.toml` → `version`
    - `crates/duplff-cli/Cargo.toml` → `version`
    - `crates/duplff-gui/src-tauri/Cargo.toml` → `version`
-   - `crates/duplff-gui/src-tauri/tauri.conf.json` → `version`
+   - `crates/duplff-gui/src-tauri/tauri.conf.json` → `version` **(controls .deb and .AppImage filenames)**
    - `crates/duplff-gui/package.json` → `version`
 5. Changes committed and pushed to main
 
